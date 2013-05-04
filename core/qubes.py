@@ -28,6 +28,7 @@ import xml.parsers.expat
 import fcntl
 import time
 import warnings
+import atexit
 
 # Do not use XenAPI or create/read any VM files
 # This is for testing only!
@@ -36,8 +37,8 @@ dry_run = False
 
 
 if not dry_run:
+    import libvirt
     import xen.lowlevel.xc
-    import xen.lowlevel.xl
     import xen.lowlevel.xs
 
 
@@ -57,7 +58,7 @@ system_path = {
 
     'qubes_icon_dir': '/usr/share/qubes/icons',
 
-    'config_template_pv': '/usr/share/qubes/vm-template.conf',
+    'config_template_pv': '/usr/share/qubes/xen-vm-template.xml',
 
     'qubes_pciback_cmd': '/usr/lib/qubes/unbind-pci-device.sh',
     'prepare_volatile_img_cmd': '/usr/lib/qubes/prepare-volatile-img.sh',
@@ -76,6 +77,7 @@ vm_files = {
 }
 
 defaults = {
+    'libvirt_uri': 'xen:///',
     'memory': 400,
     'kernelopts': "",
     'kernelopts_pcidevs': "iommu=soft swiotlb=4096",
@@ -100,17 +102,25 @@ qubes_max_netid = 254
 class QubesException (Exception):
     pass
 
+def libvirt_error_handler(ctx, error):
+    pass
+
 if not dry_run:
     xc = xen.lowlevel.xc.xc()
     xs = xen.lowlevel.xs.xs()
-    xl_ctx = xen.lowlevel.xl.ctx()
+    libvirt_conn = libvirt.open(defaults['libvirt_uri'])
+    if libvirt_conn == None:
+        raise QubesException("Failed connect to libvirt driver")
+    libvirt.registerErrorHandler(libvirt_error_handler, None)
+    atexit.register(libvirt_conn.close)
 
 class QubesHost(object):
     def __init__(self):
+        (model, memory, cpus, mhz, nodes, socket, cores, threads) = libvirt_conn.getInfo()
         self.physinfo = xc.physinfo()
 
-        self.xen_total_mem = long(self.physinfo['total_memory'])
-        self.xen_no_cpus = self.physinfo['nr_cpus']
+        self._total_mem = long(memory)*1024
+        self._no_cpus = cpus
 
 #        print "QubesHost: total_mem  = {0}B".format (self.xen_total_mem)
 #        print "QubesHost: free_mem   = {0}".format (self.get_free_xen_memory())
@@ -118,16 +128,18 @@ class QubesHost(object):
 
     @property
     def memory_total(self):
-        return self.xen_total_mem
+        return self._total_mem
 
     @property
     def no_cpus(self):
-        return self.xen_no_cpus
+        return self._no_cpus
 
+    # TODO
     def get_free_xen_memory(self):
         ret = self.physinfo['free_memory']
         return long(ret)
 
+    # TODO
     def measure_cpu_usage(self, previous=None, previous_time = None,
             wait_time=1):
         """measure cpu usage for all domains at once"""

@@ -22,7 +22,7 @@
 
 from qubes import QubesVm,QubesException,QubesVmCollection
 from qubes import QubesVmClasses
-from qubes import xs, xl_ctx
+from qubes import xs
 from qubes import system_path,vm_files
 import sys
 import os
@@ -34,7 +34,6 @@ from datetime import datetime
 from qmemman_client import QMemmanClient
 
 import xen.lowlevel.xc
-import xen.lowlevel.xl
 import xen.lowlevel.xs
 
 def mbytes_to_kmg(size):
@@ -285,6 +284,7 @@ def block_check_attached(backend_vm, device, backend_xid = None):
 
             if (device_majorminor and (tmp_major, tmp_minor) == device_majorminor) or \
                (device_majorminor is None and dev_params == device):
+                   #TODO
                 vm_name = xl_ctx.domid_to_name(int(vm_xid))
                 frontend = block_devid_to_name(int(devid))
                 xs.transaction_end(xs_trans)
@@ -559,6 +559,7 @@ def usb_check_attached(xs_trans, backend_vm, device):
                     continue
                 if dev == device:
                     frontend = "%s-%s" % (frontend_dev, port)
+                    #TODO
                     vm_name = xl_ctx.domid_to_name(int(vm))
                     if vm_name is None:
                         # FIXME: should we wipe references to frontends running on nonexistent VMs?
