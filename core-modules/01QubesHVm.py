@@ -254,7 +254,13 @@ class QubesHVm(QubesVm):
             if verbose:
                 print >> sys.stderr, "--> Starting Qubes GUId..."
 
-            retcode = subprocess.call ([system_path["qubes_guid_path"], "-d", str(self.stubdom_xid), "-t", str(self.xid), "-c", self.label.color, "-i", self.label.icon_path, "-l", str(self.label.index)])
+            retcode = subprocess.call ([system_path["qubes_guid_path"],
+                "-d", str(self.stubdom_xid),
+                "-t", str(self.xid),
+                "-n", self.name,
+                "-c", self.label.color,
+                "-i", self.label.icon_path,
+                "-l", str(self.label.index)])
             if (retcode != 0) :
                 raise QubesException("Cannot start qubes-guid!")
 
