@@ -26,7 +26,7 @@ import sys
 import libvirt
 import time
 from qubes.qubes import QubesVm,QubesVmLabel,register_qubes_vm_class
-from qubes.qubes import dry_run,libvirt_conn,xs
+from qubes.qubes import dry_run,vmm
 from qubes.qmemman_client import QMemmanClient
 
 QubesDispVmLabels = {
@@ -118,9 +118,9 @@ class QubesDisposableVm(QubesVm):
     def create_xenstore_entries(self, xid):
         super(QubesDisposableVm, self).create_xenstore_entries(xid)
 
-        domain_path = xs.get_domain_path(xid)
+        domain_path = vmm.xs.get_domain_path(xid)
 
-        xs.write('', "{0}/qubes-restore-complete".format(domain_path),
+        vmm.xs.write('', "{0}/qubes-restore-complete".format(domain_path),
                 'True')
 
     # FIXME: source_template unused
@@ -162,7 +162,7 @@ class QubesDisposableVm(QubesVm):
         assert (len(self.pcidevs) == 0), "DispVM cannot have PCI devices"
 
         print >>sys.stderr, "time=%s, calling restore" % (str(time.time()))
-        libvirt_conn.restoreFlags(self.disp_savefile,
+        vmm.libvirt_conn.restoreFlags(self.disp_savefile,
                 domain_config, libvirt.VIR_DOMAIN_SAVE_PAUSED)
 
         print >>sys.stderr, "time=%s, done, getting xid" % (str(time.time()))

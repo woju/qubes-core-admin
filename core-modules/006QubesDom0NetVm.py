@@ -23,7 +23,7 @@
 
 from qubes.qubes import QubesNetVm,register_qubes_vm_class
 from qubes.qubes import defaults
-from qubes.qubes import QubesException,dry_run,libvirt_conn
+from qubes.qubes import QubesException,dry_run,vmm
 import psutil
 
 class QubesDom0NetVm(QubesNetVm):
@@ -53,7 +53,7 @@ class QubesDom0NetVm(QubesNetVm):
         return psutil.virtual_memory().total/1024
 
     def get_mem_static_max(self):
-        return libvirt_conn.getInfo()[1]
+        return vmm.libvirt_conn.getInfo()[1]
 
     def get_disk_usage(self, file_or_dir):
         return 0
