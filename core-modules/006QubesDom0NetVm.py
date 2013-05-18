@@ -32,6 +32,8 @@ class QubesDom0NetVm(QubesNetVm):
                                              dir_path=None,
                                              private_img = None,
                                              template = None,
+                                             maxmem = 0,
+                                             vcpus = 0,
                                              label = defaults["template_label"],
                                              **kwargs)
 
