@@ -297,13 +297,13 @@ fi
 %{_unitdir}/qubes-meminfo-writer.service
 %{_unitdir}/qubes-netvm.service
 %{_unitdir}/qubes-qmemman.service
-%attr(0770,root,qubes) %dir /var/lib/qubes
-%attr(0770,root,qubes) %dir /var/lib/qubes/vm-templates
-%attr(0770,root,qubes) %dir /var/lib/qubes/appvms
-%attr(0770,root,qubes) %dir /var/lib/qubes/servicevms
-%attr(0770,root,qubes) %dir /var/lib/qubes/backup
-%attr(0770,root,qubes) %dir /var/lib/qubes/dvmdata
-%attr(0770,root,qubes) %dir /var/lib/qubes/vm-kernels
+%attr(2770,root,qubes) %dir /var/lib/qubes
+%attr(2770,root,qubes) %dir /var/lib/qubes/vm-templates
+%attr(2770,root,qubes) %dir /var/lib/qubes/appvms
+%attr(2770,root,qubes) %dir /var/lib/qubes/servicevms
+%attr(2770,root,qubes) %dir /var/lib/qubes/backup
+%attr(2770,root,qubes) %dir /var/lib/qubes/dvmdata
+%attr(2770,root,qubes) %dir /var/lib/qubes/vm-kernels
 /usr/share/qubes/xen-vm-template.xml
 /usr/share/qubes/vm-template-hvm.xml
 /usr/bin/xenstore-watch-qubes
