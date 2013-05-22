@@ -164,14 +164,13 @@ class QubesDisposableVm(QubesVm):
         vmm.libvirt_conn.restoreFlags(self.disp_savefile,
                 domain_config, libvirt.VIR_DOMAIN_SAVE_PAUSED)
 
-        print >>sys.stderr, "time=%s, done, getting xid" % (str(time.time()))
-        xid = self.get_xid()
-        self.xid = xid
+        print >>sys.stderr, "time=%s, done" % (str(time.time()))
+        self._libvirt_domain = None
 
         self.services['qubes-dvm'] = True
         if verbose:
             print >> sys.stderr, "--> Setting Xen Store info for the VM..."
-        self.create_xenstore_entries(xid)
+        self.create_xenstore_entries(self.xid)
         print >>sys.stderr, "time=%s, done xenstore" % (str(time.time()))
 
         # fire hooks
@@ -203,7 +202,7 @@ class QubesDisposableVm(QubesVm):
                     notify_function=kwargs.get('notify_function', None))
         print >>sys.stderr, "time=%s, guid done" % (str(time.time()))
 
-        return xid
+        return self.xid
 
 # register classes
 sys.modules['qubes.qubes'].QubesDispVmLabels = QubesDispVmLabels
