@@ -423,8 +423,9 @@ class QubesVm(object):
 
         self.pre_rename(name)
         self.libvirt_domain.undefine()
+        self._libvirt_domain = None
 
-        new_conf = os.path.join(self.dir_path, name)
+        new_conf = os.path.join(self.dir_path, name + '.conf')
         if os.path.exists(self.conf_file):
             os.rename(self.conf_file, new_conf)
         old_dirpath = self.dir_path
@@ -481,6 +482,8 @@ class QubesVm(object):
 
     def _update_libvirt_domain(self):
         domain_config = self.create_config_file()
+        if self._libvirt_domain:
+            self._libvirt_domain.undefine()
         self._libvirt_domain = vmm.libvirt_conn.defineXML(domain_config)
         self.uuid = uuid.UUID(bytes=self._libvirt_domain.UUID())
 
