@@ -143,9 +143,9 @@ class QubesHVm(QubesVm):
     def resize_private_img(self, size):
         raise NotImplementedError("HVM has no private.img")
 
-    def get_config_params(self, source_template=None):
+    def get_config_params(self):
 
-        params = super(QubesHVm, self).get_config_params(source_template=source_template)
+        params = super(QubesHVm, self).get_config_params()
 
         params['volatiledev'] = ''
         if self.drive:

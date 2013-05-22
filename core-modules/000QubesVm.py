@@ -850,8 +850,7 @@ class QubesVm(object):
                 slot=dev_match.group(2),
                 fun=dev_match.group(3))
 
-    # FIXME: source_template unused
-    def get_rootdev(self, source_template=None):
+    def get_rootdev(self):
         if self.template:
             return self._format_disk_dev(
                     "{dir}/root.img:{dir}/root-cow.img".format(
@@ -862,8 +861,7 @@ class QubesVm(object):
                     "{dir}/root.img".format(dir=self.dir_path),
                     None, "xvda", True)
 
-    # FIXME: source_template unused
-    def get_config_params(self, source_template=None):
+    def get_config_params(self):
         args = {}
         args['name'] = self.name
         if hasattr(self, 'kernels_dir'):
@@ -926,8 +924,7 @@ class QubesVm(object):
     def uses_custom_config(self):
         return self.conf_file != self.absolute_path(self.name + ".conf", None)
 
-    # FIXME: source_template unused
-    def create_config_file(self, file_path = None, source_template = None, prepare_dvm = False):
+    def create_config_file(self, file_path = None, prepare_dvm = False):
         if file_path is None:
             file_path = self.conf_file
         if self.uses_custom_config:
@@ -935,14 +932,12 @@ class QubesVm(object):
             domain_config = conf_appvm.read()
             conf_appvm.close()
             return domain_config
-        if source_template is None:
-            source_template = self.template
 
         f_conf_template = open(self.config_file_template, 'r')
         conf_template = f_conf_template.read()
         f_conf_template.close()
 
-        template_params = self.get_config_params(source_template)
+        template_params = self.get_config_params()
         if prepare_dvm:
             template_params['name'] = '%NAME%'
             template_params['privatedev'] = ''

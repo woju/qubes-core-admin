@@ -123,8 +123,7 @@ class QubesDisposableVm(QubesVm):
         vmm.xs.write('', "{0}/qubes-restore-complete".format(domain_path),
                 'True')
 
-    # FIXME: source_template unused
-    def get_config_params(self, source_template=None):
+    def get_config_params(self):
         attrs = super(QubesDisposableVm, self).get_config_params()
         attrs['privatedev'] = ''
         return attrs
