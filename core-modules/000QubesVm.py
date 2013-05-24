@@ -1416,7 +1416,7 @@ class QubesVm(object):
         qrexec_env['QREXEC_STARTUP_TIMEOUT'] = str(self.qrexec_timeout)
         retcode = subprocess.call ([system_path["qrexec_daemon_path"], str(self.xid), self.name, self.default_user], env=qrexec_env)
         if (retcode != 0) :
-            self.force_shutdown(xid=xid)
+            self.force_shutdown()
             raise OSError ("ERROR: Cannot execute qrexec-daemon!")
 
     def start(self, verbose = False, preparing_dvm = False, start_guid = True, notify_function = None):
