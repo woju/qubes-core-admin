@@ -1080,7 +1080,7 @@ class QubesVm(object):
 
         # fire hooks
         for hook in self.hooks_clone_disk_files:
-            hook(self, verbose, src_vm)
+            hook(self, src_vm, verbose)
 
     def verify_files(self):
         if dry_run:
