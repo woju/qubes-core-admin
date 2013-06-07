@@ -48,6 +48,7 @@ Requires(preun): systemd-units
 Requires(postun): systemd-units
 Requires:	python, pciutils, python-inotify, python-daemon, kernel-qubes-dom0
 Requires:       qubes-core-dom0-linux
+Requires:       qubes-db-dom0
 Requires:       python-lxml
 Requires:       python-psutil
 # TODO: R: qubes-gui-dom0 >= 2.1.11
