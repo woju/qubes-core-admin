@@ -1,5 +1,6 @@
 PYTHON_QUBESPATH = $(PYTHON_SITEPATH)/qubes
 SYSCONFDIR ?= /etc
+UNITDIR ?= /usr/lib/systemd/system
 
 all: meminfo-writer
 	python -m compileall .
@@ -23,4 +24,7 @@ endif
 	mkdir -p $(DESTDIR)/usr/lib/qubes
 	cp server.py $(DESTDIR)/usr/lib/qubes/qmemman_daemon.py
 	cp meminfo-writer $(DESTDIR)/usr/lib/qubes/
+	mkdir -p $(DESTDIR)$(UNITDIR)
+	cp qubes-meminfo-writer.service $(DESTDIR)$(UNITDIR)
+	cp qubes-qmemman.service $(DESTDIR)$(UNITDIR)
 
