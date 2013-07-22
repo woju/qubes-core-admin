@@ -22,7 +22,7 @@
 #
 
 import datetime
-import fcntl
+from lockfile import LockFile
 import lxml.etree
 import os
 import os.path
@@ -1185,11 +1185,10 @@ class QubesVm(object):
 
         try:
             old_umask = os.umask(002)
-            with open(self.firewall_conf, 'w') as f:
-                fcntl.lockf(f, fcntl.LOCK_EX)
-                tree.write(f, encoding="UTF-8", pretty_print=True)
-                fcntl.lockf(f, fcntl.LOCK_UN)
-            f.close()
+            with LockFile(self.firewall_conf):
+                with open(self.firewall_conf, 'w') as f:
+                    tree.write(f, encoding="UTF-8", pretty_print=True)
+                f.close()
             os.umask(old_umask)
         except EnvironmentError as err:
             print >> sys.stderr, "{0}: save error: {1}".format(
