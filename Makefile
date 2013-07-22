@@ -46,12 +46,13 @@ install:
 	$(MAKE) install -C qmemman
 	$(MAKE) install -C dispvm
 	mkdir -p $(DESTDIR)/etc/qubes-rpc/policy
+	mkdir -p $(DESTDIR)/usr/libexec/qubes
 	cp qubes-rpc-policy/qubes.Filecopy.policy $(DESTDIR)/etc/qubes-rpc/policy/qubes.Filecopy
 	cp qubes-rpc-policy/qubes.OpenInVM.policy $(DESTDIR)/etc/qubes-rpc/policy/qubes.OpenInVM
 	cp qubes-rpc-policy/qubes.VMShell.policy $(DESTDIR)/etc/qubes-rpc/policy/qubes.VMShell
 	cp qubes-rpc-policy/qubes.NotifyUpdates.policy $(DESTDIR)/etc/qubes-rpc/policy/qubes.NotifyUpdates
 	cp qubes-rpc/qubes.NotifyUpdates $(DESTDIR)/etc/qubes-rpc/
-	cp qubes-rpc/qubes-notify-updates $(DESTDIR)/usr/lib/qubes/
+	cp qubes-rpc/qubes-notify-updates $(DESTDIR)/usr/libexec/qubes/
 	mkdir -p $(DESTDIR)/usr/share/qubes
 	cp xen-vm-config/vm-template.xml $(DESTDIR)/usr/share/qubes/xen-vm-template.xml
 	cp xen-vm-config/vm-template-hvm.xml $(DESTDIR)/usr/share/qubes/
