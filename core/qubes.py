@@ -39,7 +39,6 @@ dry_run = False
 
 if not dry_run:
     import libvirt
-    import xen.lowlevel.xc
     import xen.lowlevel.xs
 
 
@@ -133,7 +132,6 @@ class QubesVMMConnection(object):
             # Do not initialize in offline mode
             return
 
-        self._xc = xen.lowlevel.xc.xc()
         self._xs = xen.lowlevel.xs.xs()
         self._libvirt_conn = libvirt.open(defaults['libvirt_uri'])
         if self._libvirt_conn == None:
@@ -158,10 +156,6 @@ class QubesVMMConnection(object):
     def xs(self):
         return self._common_getter('_xs')
 
-    @property
-    def xc(self):
-        return self._common_getter('_xc')
-
 
 ##### VMM global variable definition #####
 
@@ -173,8 +167,6 @@ if not dry_run:
 class QubesHost(object):
     def __init__(self):
         (model, memory, cpus, mhz, nodes, socket, cores, threads) = vmm.libvirt_conn.getInfo()
-        self.physinfo = vmm.xc.physinfo()
-
         self._total_mem = long(memory)*1024
         self._no_cpus = cpus
 
