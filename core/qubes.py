@@ -237,34 +237,8 @@ class QubesVmLabel(object):
         self.icon_path = os.path.join(
                 system_path['qubes_icon_dir'], self.icon) + ".png"
 
-# Globally defined lables
-QubesVmLabels = {
-    "red" : QubesVmLabel ("red", 1),
-    "orange" : QubesVmLabel ("orange", 2),
-    "yellow" : QubesVmLabel ("yellow", 3),
-    "green" : QubesVmLabel ("green", 4, color="0x5fa05e"),
-    "gray" : QubesVmLabel ("gray", 5),
-    "blue" : QubesVmLabel ("blue", 6),
-    "purple" : QubesVmLabel ("purple", 7, color="0xb83374"),
-    "black" : QubesVmLabel ("black", 8),
-}
 
-QubesDispVmLabels = {
-    "red" : QubesVmLabel ("red", 1, icon="dispvm-red"),
-    "orange" : QubesVmLabel ("orange", 2, icon="dispvm-orange"),
-    "yellow" : QubesVmLabel ("yellow", 3, icon="dispvm-yellow"),
-    "green" : QubesVmLabel ("green", 4, color="0x5fa05e", icon="dispvm-green"),
-    "gray" : QubesVmLabel ("gray", 5, icon="dispvm-gray"),
-    "blue" : QubesVmLabel ("blue", 6, icon="dispvm-blue"),
-    "purple" : QubesVmLabel ("purple", 7, color="0xb83374", icon="dispvm-purple"),
-    "black" : QubesVmLabel ("black", 8, icon="dispvm-black"),
-}
 
-defaults["appvm_label"] = QubesVmLabels["red"]
-defaults["template_label"] = QubesVmLabels["black"]
-defaults["servicevm_label"] = QubesVmLabels["red"]
-
-QubesVmClasses = {}
 def register_qubes_vm_class(vm_class):
     QubesVmClasses[vm_class.__name__] = vm_class
     # register class as local for this module - to make it easy to import from
@@ -789,6 +763,36 @@ class QubesDaemonPidfile(object):
         self.remove_pidfile()
         return False
 
+### Initialization code
+
+# Globally defined lables
+QubesVmLabels = {
+    "red" : QubesVmLabel ("red", 1),
+    "orange" : QubesVmLabel ("orange", 2),
+    "yellow" : QubesVmLabel ("yellow", 3),
+    "green" : QubesVmLabel ("green", 4, color="0x5fa05e"),
+    "gray" : QubesVmLabel ("gray", 5),
+    "blue" : QubesVmLabel ("blue", 6),
+    "purple" : QubesVmLabel ("purple", 7, color="0xb83374"),
+    "black" : QubesVmLabel ("black", 8),
+}
+
+QubesDispVmLabels = {
+    "red" : QubesVmLabel ("red", 1, icon="dispvm-red"),
+    "orange" : QubesVmLabel ("orange", 2, icon="dispvm-orange"),
+    "yellow" : QubesVmLabel ("yellow", 3, icon="dispvm-yellow"),
+    "green" : QubesVmLabel ("green", 4, color="0x5fa05e", icon="dispvm-green"),
+    "gray" : QubesVmLabel ("gray", 5, icon="dispvm-gray"),
+    "blue" : QubesVmLabel ("blue", 6, icon="dispvm-blue"),
+    "purple" : QubesVmLabel ("purple", 7, color="0xb83374", icon="dispvm-purple"),
+    "black" : QubesVmLabel ("black", 8, icon="dispvm-black"),
+}
+
+defaults["appvm_label"] = QubesVmLabels["red"]
+defaults["template_label"] = QubesVmLabels["black"]
+defaults["servicevm_label"] = QubesVmLabels["red"]
+
+QubesVmClasses = {}
 modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
 for module_file in sorted(os.listdir(modules_dir)):
     if not module_file.endswith(".py") or module_file == "__init__.py":
