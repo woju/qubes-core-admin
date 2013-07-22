@@ -1,4 +1,7 @@
+OS ?= Linux
+
 PYTHON_QUBESPATH = $(PYTHON_SITEPATH)/qubes
+SETTINGS_SUFFIX = $(BACKEND_VMM)-$(OS)
 
 all:
 	python -m compileall .
@@ -17,3 +20,11 @@ endif
 	cp guihelpers.py[co] $(DESTDIR)$(PYTHON_QUBESPATH)
 	cp __init__.py $(DESTDIR)$(PYTHON_QUBESPATH)
 	cp __init__.py[co] $(DESTDIR)$(PYTHON_QUBESPATH)
+ifneq ($(BACKEND_VMM),)
+	test -r settings-$(SETTINGS_SUFFIX).py && \
+		cp settings-$(SETTINGS_SUFFIX).py $(DESTDIR)$(PYTHON_QUBESPATH)/settings.py
+	test -r settings-$(SETTINGS_SUFFIX).pyc && \
+		cp settings-$(SETTINGS_SUFFIX).pyc $(DESTDIR)$(PYTHON_QUBESPATH)/settings.pyc
+	test -r settings-$(SETTINGS_SUFFIX).pyo && \
+		cp settings-$(SETTINGS_SUFFIX).pyo $(DESTDIR)$(PYTHON_QUBESPATH)/settings.pyo
+endif
