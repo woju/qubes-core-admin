@@ -50,11 +50,11 @@ system_path = {
 
     'qubes_base_dir': qubes_base_dir,
 
-    'qubes_appvms_dir': qubes_base_dir + '/appvms',
-    'qubes_templates_dir': qubes_base_dir + '/vm-templates',
-    'qubes_servicevms_dir': qubes_base_dir + '/servicevms',
-    'qubes_store_filename': qubes_base_dir + '/qubes.xml',
-    'qubes_kernels_base_dir': qubes_base_dir + '/vm-kernels',
+    'qubes_appvms_dir': '{base_dir}/appvms',
+    'qubes_templates_dir': '{base_dir}/vm-templates',
+    'qubes_servicevms_dir': '{base_dir}/servicevms',
+    'qubes_store_filename': '{base_dir}/qubes.xml',
+    'qubes_kernels_base_dir': '{base_dir}/vm-kernels',
 
     'qubes_icon_dir': '/usr/share/qubes/icons',
 
@@ -234,10 +234,11 @@ class QubesVmLabel(object):
         self.index = index
         self.color = color if color is not None else name
         self.icon = icon if icon is not None else name
-        self.icon_path = os.path.join(
+
+    @property
+    def icon_path(self):
+        return os.path.join(
                 system_path['qubes_icon_dir'], self.icon) + ".png"
-
-
 
 def register_qubes_vm_class(vm_class):
     QubesVmClasses[vm_class.__name__] = vm_class
@@ -250,7 +251,7 @@ class QubesVmCollection(dict):
     A collection of Qubes VMs indexed by Qubes id (qid)
     """
 
-    def __init__(self, store_filename=system_path["qubes_store_filename"]):
+    def __init__(self, store_filename=None):
         super(QubesVmCollection, self).__init__()
         self.default_netvm_qid = None
         self.default_fw_netvm_qid = None
@@ -258,6 +259,8 @@ class QubesVmCollection(dict):
         self.default_kernel = None
         self.updatevm_qid = None
         self.qubes_store_filename = store_filename
+        if not store_filename:
+            self.qubes_store_filename = system_path["qubes_store_filename"]
         self.clockvm_qid = None
         self.qubes_store_file = None
         self.qubes_store_file_lock = LockFile(self.qubes_store_filename)
@@ -798,5 +801,10 @@ for module_file in sorted(os.listdir(modules_dir)):
     if not module_file.endswith(".py") or module_file == "__init__.py":
         continue
     __import__('qubes.modules.%s' % module_file[:-3])
+
+for path_key in system_path.keys():
+    system_path[path_key] = system_path[path_key].format(
+            base_dir=system_path['qubes_base_dir']
+            )
 
 # vim:sw=4:et:
