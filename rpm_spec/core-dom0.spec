@@ -191,6 +191,9 @@ fi
 %{python_sitearch}/qubes/guihelpers.py
 %{python_sitearch}/qubes/guihelpers.pyc
 %{python_sitearch}/qubes/guihelpers.pyo
+%{python_sitearch}/qubes/storage/*.py
+%{python_sitearch}/qubes/storage/*.pyc
+%{python_sitearch}/qubes/storage/*.pyo
 %{python_sitearch}/qubes/__init__.py
 %{python_sitearch}/qubes/__init__.pyc
 %{python_sitearch}/qubes/__init__.pyo
