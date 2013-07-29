@@ -194,6 +194,9 @@ fi
 %{python_sitearch}/qubes/storage/*.py
 %{python_sitearch}/qubes/storage/*.pyc
 %{python_sitearch}/qubes/storage/*.pyo
+%{python_sitearch}/qubes/settings.py
+%{python_sitearch}/qubes/settings.pyc
+%{python_sitearch}/qubes/settings.pyo
 %{python_sitearch}/qubes/__init__.py
 %{python_sitearch}/qubes/__init__.pyc
 %{python_sitearch}/qubes/__init__.pyo
