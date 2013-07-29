@@ -197,12 +197,12 @@ fi
 %{python_sitearch}/qubes/qmemman*.py*
 %{python_sitearch}/qubes/modules/0*.py*
 %{python_sitearch}/qubes/modules/__init__.py*
+/usr/libexec/qubes/qubes-notify-updates
 /usr/lib/qubes/unbind-pci-device.sh
 /usr/lib/qubes/cleanup-dispvms
 /usr/lib/qubes/qmemman_daemon.py*
 /usr/lib/qubes/meminfo-writer
 /usr/lib/qubes/qfile-daemon-dvm*
-/usr/lib/qubes/qubes-notify-updates
 /usr/lib/qubes/block-cleaner-daemon.py*
 /usr/lib/qubes/vusb-ctl.py*
 /usr/lib/qubes/xl-qvm-usb-attach.py*
