@@ -89,6 +89,29 @@ class QubesXenVmStorage(QubesVmStorage):
             args['otherdevs'] = \
                     self._format_disk_dev(self.modules_img,
                             None, self.modules_dev, self.modules_img_rw)
+        elif self.drive is not None:
+            type = "cdrom"
+            drive_path = self.drive
+            # leave empty to use standard syntax in case of dom0
+            backend_domain = None
+            if drive_path.startswith("hd:"):
+                type="disk"
+                drive_path = drive_path[3:]
+            elif drive_path.startswith("cdrom:"):
+                drive_path = drive_path[6:]
+            backend_split = re.match(r"^([a-zA-Z0-9-]*):(.*)", drive_path)
+            if backend_split:
+                backend_domain = backend_split.group(1)
+                drive_path = backend_split.group(2)
+            if backend_domain and backend_domain.lower() == "dom0":
+                backend_domain = None
+
+            args['otherdevs'] = self._format_disk_dev(drive_path, None,
+                    self.modules_dev,
+                    rw=True if type == "disk" else False, type=type,
+                    domain=backend_domain)
+
+
 
         return args
 

@@ -111,16 +111,10 @@ class QubesHVm(QubesVm):
         if dry_run:
             return
 
-        if verbose:
-            print >> sys.stderr, "--> Creating directory: {0}".format(self.dir_path)
-        os.mkdir (self.dir_path)
-
-        self.create_config_file()
-
         # create empty disk
-        f_root = open(self.root_img, "w")
-        f_root.truncate(defaults["hvm_disk_size"])
-        f_root.close()
+        self.storage.private_img_size = defaults["hvm_private_img_size"]
+        self.storage.root_img_size = defaults["hvm_disk_size"]
+        self.storage.create_on_disk(verbose, source_template)
 
         if verbose:
             print >> sys.stderr, "--> Creating icon symlink: {0} -> {1}".format(self.icon_path, self.label.icon_path)
@@ -132,11 +126,6 @@ class QubesHVm(QubesVm):
                 shutil.copy(self.label.icon_path, self.icon_path)
         except Exception as e:
             print >> sys.stderr, "WARNING: Failed to set VM icon: %s" % str(e)
-
-        # create empty private.img
-        f_private = open(self.private_img, "w")
-        f_private.truncate(defaults["hvm_private_img_size"])
-        f_root.close()
 
         # fire hooks
         for hook in self.hooks_create_on_disk:
@@ -155,30 +144,9 @@ class QubesHVm(QubesVm):
 
         params = super(QubesHVm, self).get_config_params()
 
+        self.storage.drive = self.drive
+        params.update(self.storage.get_config_params())
         params['volatiledev'] = ''
-        if self.drive:
-            type = "cdrom"
-            drive_path = self.drive
-            # leave empty to use standard syntax in case of dom0
-            backend_domain = None
-            if drive_path.startswith("hd:"):
-                type="disk"
-                drive_path = drive_path[3:]
-            elif drive_path.startswith("cdrom:"):
-                drive_path = drive_path[6:]
-            backend_split = re.match(r"^([a-zA-Z0-9-]*):(.*)", drive_path)
-            if backend_split:
-                backend_domain = backend_split.group(1)
-                drive_path = backend_split.group(2)
-            if backend_domain and backend_domain.lower() == "dom0":
-                backend_domain = None
-
-            params['otherdevs'] = self._format_disk_dev(drive_path, None, "xvdc",
-                    rw=True if type == "disk" else False, type=type,
-                    domain=backend_domain)
-
-        else:
-             params['otherdevs'] = ''
 
         # Disable currently unused private.img - to be enabled when TemplateHVm done
         params['privatedev'] = ''
@@ -199,22 +167,11 @@ class QubesHVm(QubesVm):
         if dry_run:
             return
 
-        if not os.path.exists (self.dir_path):
-            raise QubesException (
-                    "VM directory doesn't exist: {0}".\
-                    format(self.dir_path))
-
-        if self.is_updateable() and not os.path.exists (self.root_img):
-            raise QubesException (
-                    "VM root image file doesn't exist: {0}".\
-                    format(self.root_img))
-
+        self.storage.verify_files()
         if not os.path.exists (self.private_img):
             print >>sys.stderr, "WARNING: Creating empty VM private image file: {0}".\
                 format(self.private_img)
-            f_private = open(self.private_img, "w")
-            f_private.truncate(defaults["hvm_private_img_size"])
-            f_private.close()
+            self.storage.create_on_disk_private_img(verbose=False)
 
         # fire hooks
         for hook in self.hooks_verify_files:
