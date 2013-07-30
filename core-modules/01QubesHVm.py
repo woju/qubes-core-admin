@@ -26,6 +26,7 @@ import os.path
 import subprocess
 import sys
 import re
+import shutil
 import stat
 
 from qubes.qubes import QubesVm,register_qubes_vm_class,vmm,dry_run
@@ -114,16 +115,23 @@ class QubesHVm(QubesVm):
             print >> sys.stderr, "--> Creating directory: {0}".format(self.dir_path)
         os.mkdir (self.dir_path)
 
-        if verbose:
-            print >> sys.stderr, "--> Creating icon symlink: {0} -> {1}".format(self.icon_path, self.label.icon_path)
-        os.symlink (self.label.icon_path, self.icon_path)
-
         self.create_config_file()
 
         # create empty disk
         f_root = open(self.root_img, "w")
         f_root.truncate(defaults["hvm_disk_size"])
         f_root.close()
+
+        if verbose:
+            print >> sys.stderr, "--> Creating icon symlink: {0} -> {1}".format(self.icon_path, self.label.icon_path)
+
+        try:
+            if hasattr(os, "symlink"):
+                os.symlink (self.label.icon_path, self.icon_path)
+            else:
+                shutil.copy(self.label.icon_path, self.icon_path)
+        except Exception as e:
+            print >> sys.stderr, "WARNING: Failed to set VM icon: %s" % str(e)
 
         # create empty private.img
         f_private = open(self.private_img, "w")
