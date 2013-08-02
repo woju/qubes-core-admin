@@ -56,7 +56,6 @@ class QubesHVm(QubesVm):
         attrs.pop('uses_default_kernel')
         attrs.pop('uses_default_kernelopts')
         attrs['dir_path']['eval'] = 'value if value is not None else os.path.join(system_path["qubes_appvms_dir"], self.name)'
-        attrs['volatile_img']['eval'] = 'None'
         attrs['config_file_template']['eval'] = 'system_path["config_template_hvm"]'
         attrs['drive'] = { 'save': 'str(self.drive)' }
         # Remove this two lines when HVM will get qmemman support
@@ -88,6 +87,8 @@ class QubesHVm(QubesVm):
         # Disable qemu GUID if the user installed qubes gui agent
         if self.guiagent_installed:
             self._start_guid_first = False
+
+        self.storage.volatile_img = None
 
     @property
     def type(self):
