@@ -27,10 +27,17 @@ import os
 import os.path
 import lxml.etree
 import xml.parsers.expat
-import fcntl
 import time
 import warnings
 import atexit
+if os.name == 'posix':
+    import fcntl
+elif os.name == 'nt':
+    import win32con
+    import win32file
+    import pywintypes
+else:
+    raise RuntimeError, "Qubes works only on POSIX or WinNT systems"
 
 # Do not use XenAPI or create/read any VM files
 # This is for testing only!
@@ -534,14 +541,29 @@ class QubesVmCollection(dict):
 
     def lock_db_for_reading(self):
         self.qubes_store_file = open (self.qubes_store_filename, 'r')
-        fcntl.lockf (self.qubes_store_file, fcntl.LOCK_SH)
+        if os.name == 'posix':
+            fcntl.lockf (self.qubes_store_file, fcntl.LOCK_SH)
+        elif os.name == 'nt':
+            overlapped = pywintypes.OVERLAPPED()
+            win32file.LockFileEx(win32file._get_osfhandle(self.qubes_store_file.fileno()),
+                    0, 0, -0x10000, overlapped)
 
     def lock_db_for_writing(self):
         self.qubes_store_file = open (self.qubes_store_filename, 'r+')
-        fcntl.lockf (self.qubes_store_file, fcntl.LOCK_EX)
+        if os.name == 'posix':
+            fcntl.lockf (self.qubes_store_file, fcntl.LOCK_EX)
+        elif os.name == 'nt':
+            overlapped = pywintypes.OVERLAPPED()
+            win32file.LockFileEx(win32file._get_osfhandle(self.qubes_store_file.fileno()),
+                    win32con.LOCKFILE_EXCLUSIVE_LOCK, 0, -0x10000, overlapped)
 
     def unlock_db(self):
-        fcntl.lockf (self.qubes_store_file, fcntl.LOCK_UN)
+        if os.name == 'posix':
+            fcntl.lockf (self.qubes_store_file, fcntl.LOCK_UN)
+        elif os.name == 'nt':
+            overlapped = pywintypes.OVERLAPPED()
+            win32file.UnlockFileEx(win32file._get_osfhandle(self.qubes_store_file.fileno()),
+                    0, -0x10000, overlapped)
         self.qubes_store_file.close()
 
     def save(self):
