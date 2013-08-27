@@ -271,10 +271,6 @@ class QubesVmCollection(dict):
         self.clockvm_qid = None
         self.qubes_store_file = None
 
-    def __del__(self):
-        if self.qubes_store_file_lock.i_am_locking():
-            self.qubes_store_file_lock.release()
-
     def values(self):
         for qid in self.keys():
             yield self[qid]
