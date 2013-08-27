@@ -27,7 +27,7 @@ import os
 import os.path
 import lxml.etree
 import xml.parsers.expat
-from lockfile import LockFile
+import fcntl
 import time
 import warnings
 import atexit
@@ -270,7 +270,6 @@ class QubesVmCollection(dict):
             self.qubes_store_filename = system_path["qubes_store_filename"]
         self.clockvm_qid = None
         self.qubes_store_file = None
-        self.qubes_store_file_lock = LockFile(self.qubes_store_filename)
 
     def __del__(self):
         if self.qubes_store_file_lock.i_am_locking():
@@ -538,18 +537,15 @@ class QubesVmCollection(dict):
         self.save()
 
     def lock_db_for_reading(self):
-        self.qubes_store_file_lock.acquire()
         self.qubes_store_file = open (self.qubes_store_filename, 'r')
+        fcntl.lockf (self.qubes_store_file, fcntl.LOCK_SH)
 
     def lock_db_for_writing(self):
-        # FIXME: restore real RW locks, most likely emulated with two simple
-        # locks. Warning: creating two lock files with python-lockfile in the
-        # same directory will not work!
-        self.qubes_store_file_lock.acquire()
         self.qubes_store_file = open (self.qubes_store_filename, 'r+')
+        fcntl.lockf (self.qubes_store_file, fcntl.LOCK_EX)
 
     def unlock_db(self):
-        self.qubes_store_file_lock.release()
+        fcntl.lockf (self.qubes_store_file, fcntl.LOCK_UN)
         self.qubes_store_file.close()
 
     def save(self):

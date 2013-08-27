@@ -51,7 +51,6 @@ Requires:       qubes-core-dom0-linux
 Requires:       qubes-db-dom0
 Requires:       python-lxml
 Requires:       python-psutil
-Requires:       python-lockfile
 # TODO: R: qubes-gui-dom0 >= 2.1.11
 Conflicts:      qubes-gui-dom0 < 1.1.13
 Requires:       libvirt-python
