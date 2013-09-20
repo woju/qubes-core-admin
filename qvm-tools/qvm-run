@@ -28,7 +28,6 @@ from optparse import OptionParser
 import subprocess
 import socket
 import errno
-import dbus
 import time
 import sys
 import os
@@ -166,6 +165,7 @@ def main():
         cmdstr = args[1] if takes_cmd_argument else None
 
     if options.tray:
+        import dbus
         global notify_object
         notify_object = dbus.SessionBus().get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
 

@@ -24,8 +24,6 @@ import sys
 from optparse import OptionParser
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-import dbus
-from dbus import DBusException
 
 app = None
 system_bus = None
@@ -58,6 +56,8 @@ def ask(text, title="Question", yestoall=False):
         return 127
 
 def notify_error_qubes_manager(name, message):
+    import dbus
+    from dbus import DBusException
     global system_bus
     if system_bus is None:
         system_bus = dbus.SystemBus()
@@ -71,6 +71,8 @@ def notify_error_qubes_manager(name, message):
         pass
 
 def clear_error_qubes_manager(name, message):
+    import dbus
+    from dbus import DBusException
     global system_bus
     if system_bus is None:
         system_bus = dbus.SystemBus()

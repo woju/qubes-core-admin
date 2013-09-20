@@ -26,7 +26,6 @@ from optparse import OptionParser
 import subprocess
 import os
 import sys
-import dbus
 
 notify_object = None
 
@@ -69,6 +68,7 @@ def main():
     vmname = args[0]
 
     if options.tray:
+        import dbus
         global notify_object
         notify_object = dbus.SessionBus().get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
 
