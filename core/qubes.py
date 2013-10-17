@@ -68,6 +68,8 @@ system_path = {
     'qubes_store_filename': 'qubes.xml',
     'qubes_kernels_base_dir': 'vm-kernels',
 
+    'qrexec_policy_dir': '/etc/qubes-rpc/policy',
+
     'qubes_icon_dir': '/usr/share/qubes/icons',
 
     'config_template_pv': '/usr/share/qubes/vm-template.xml',
