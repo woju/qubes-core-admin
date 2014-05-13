@@ -1,0 +1,17 @@
+#compdef qvm-kill
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-kill() {
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    ':Qubes VM:_qubes_vm_running' \
+  && return 0
+}
+
+_qvm-kill "$@"
+
+# vim: ts=2 sw=2 et

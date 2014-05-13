@@ -1,0 +1,44 @@
+#compdef qvm-backup
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_algo_ciphers() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+
+  local -a _algos
+  _algos=( $(openssl list-cipher-algorithms | sed -e 's/ => /:/') )
+  _describe -t 'algo-cipher' 'Cipher algorithm' _algos
+}
+
+_algo_hmacs() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+
+  local -a _algos
+  _algos=( $(openssl list-message-digest-algorithms | sed -e 's/ => /:/') )
+  _describe -t 'algo-hmac' 'HMAC algorithm' _algos
+}
+
+_qvm-backup() {
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '(-x --exclude)*'{-x,--exclude}'[exclude this VM name]:Qubes VM:_qubes_vm_all' \
+    '(-q --quiet)'{-q,--quiet}'[disable output]' \
+    '--force-root[force to run even with root privileges]' \
+    '(-d --dest-vm)'{-d,--dest-vm}'[the AppVM to send backups to]:Qubes VM:_qubes_vm_all' \
+    '(-e --encrypt)'{-e,--encrypt}'[encrypt the backup]' \
+    '--no-encryption[do not encrypt the backup]' \
+    '(-E --enc-algo)'{-E,--enc-algo}'[encryption algorithm]:Cipher algorithm:_algo_ciphers' \
+    '(-H --hmac-algo)'{-H,--hmac-algo}'[HMAC algorithm]:HMAC algorithm:_algo_hmacs' \
+    '(-z --compress)'{-z,--compress}'[compress the backup]' \
+    '*::Qubes VM:_qubes_vm_all' \
+  && return 0
+}
+
+_qvm-backup "$@"
+
+# vim: ts=2 sw=2 et

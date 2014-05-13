@@ -1,0 +1,40 @@
+#compdef qvm-backup-restore
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-backup-restore() {
+  local curcontext="$curcontext" state line expl
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '--skip-broken[do not restore VMs that have missing templates or netvms]' \
+    '--ignore-missing[ignore missing templates or netvms, restore VMs anyway]' \
+    '--skip-conflicting[do not restore VMs that are already present on the host]' \
+    '--force-root[force to run even with root privileges]' \
+    '--replace-template[restore VMs using another template]:template mapping:->tempmap' \
+    '(-x --exclude)*'{-x,--exclude}'[skip restore of specified VM]:Qubes VM:_qubes_vm_all' \
+    '--skip-dom0-home[do not restore dom0 user home dir]' \
+    '--ignore-username-mismatch[ignore dom0 username mismatch while restoring homedir]' \
+    '(-d --dest-vm)*'{-d,--dest-vm}'[the AppVM to send backups to]:Qubes VM:_qubes_vm_running' \
+    '(-e --encrypted)'{-e,--encrypted}'[the backup is encrypted]' \
+    '(-z --compressed)'{-z,--compressed}'[the backup is compressed]' \
+    '(-q --quiet)'{-q,--quiet}'[disable output]' \
+    '(-p --path)'{-p,--path}'[path to the template directory]' \
+    ':backup directory:_path_files -/' \
+    '*::Qubes VM:_qubes_vm_all' \
+  && return 0
+
+  case $state in
+  (tempmap)
+    if compset -P '*:'; then
+      _qubes_vm_temp "$@"
+    fi
+    ;;
+  esac
+}
+
+_qvm-backup-restore "$@"
+
+# vim: ts=2 sw=2 et

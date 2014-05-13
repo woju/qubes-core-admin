@@ -1,0 +1,24 @@
+#compdef qvm-ls
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-ls() {
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '(-n --network)'{-n,--network}'[show network addresses assigned to VMs]' \
+    '(-c --cpu)'{-c,--cpu}'[show CPU load]' \
+    '(-m --mem)'{-m,--mem}'[show memory usage]' \
+    '(-d --disk)'{-d,--disk}'[show VM disk utilization statistics]' \
+    '(-k --kernel)'{-k,--kernel}'[show VM kernel options]' \
+    '(-i --ids)'{-i,--ids}'[show Qubes and Xen id#s]' \
+    '(-b --last-backup)'{-b,--last-backup}'[show date of last VM backup]' \
+    '--raw-list[list only VM names one per line]' \
+    '*::Qubes VM:_qubes_vm_all'
+}
+
+_qvm-ls "$@"
+
+# vim: ts=2 sw=2 et

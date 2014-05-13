@@ -1,0 +1,91 @@
+#compdef qvm-prefs
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_boolean() {
+  compadd "$@" True False
+}
+
+# XXX qvm-prefs is BROKEN (tm)
+_shitbool() {
+  compadd "$@" on off
+}
+
+_qvm-prefs() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '(- 2 3)'{-l,--list}'[list properties]' \
+    '(-)'{-s,--set}'[set property]' \
+    ':Qubes VM:_qubes_vm_all' \
+    ':property:->property' \
+    ':value:->value' \
+  && return 0
+
+  case $state in
+  (property)
+    # XXX one probably should import something from somewhere
+    compadd "$@" $(sed -ne \
+      '/^properties/,/}/s/^\s*"\([A-Za-z_-]*\)".*$/\1/p' \
+      $(which qvm-prefs))
+    ;;
+
+  (value)
+    case $words[CURRENT-1] in
+    (autostart|guiagent_installed|include_in_backups|internal|qrexec_installed|seamless_gui_mode)
+      _boolean "$@"
+      ;;
+
+    # yeah
+    (debug)
+      _shitbool "$@"
+      ;;
+
+    (drive)
+      _files "$@"
+      ;;
+
+    (kernel)
+      _qubes_kernels "$@"
+      ;;
+
+    (label)
+      _qubes_label_names "$@"
+      ;;
+
+    (netvm)
+      _qubes_vm_net "$@"
+      ;;
+
+    (template)
+      _qubes_vm_temp "$@"
+      ;;
+
+    (timezone)
+      _time_zone "$@"
+      ;;
+
+    # not completed
+    #(default_user)
+    #(kernelopts)
+    #(mac)
+    #(maxmem)
+    #(memory)
+    #(name)
+    #(pcidevs) TODO
+    #(qrexec_timeout)
+    #(vcpus)
+
+    esac
+    ;;
+  esac
+}
+
+_qvm-prefs "$@"
+
+# vim: ts=2 sw=2 et

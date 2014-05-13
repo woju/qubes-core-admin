@@ -1,0 +1,29 @@
+#compdef qvm-create-default-dvm
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-create-default-dvm() {
+  _arguments -s : \
+    ':Template VM:->template' \
+    ':VM script:->script ' \
+  && return 0
+
+  case $state in
+  (template)
+    _qubes_vm_temp "$@"
+    compadd "$@" -- --default-template --used-template
+    ;;
+
+  (script)
+    _files "$@"
+    compadd "$@" -- --default-script
+    ;;
+  esac
+}
+
+_qvm-create-default-dvm "$@"
+
+# vim: ts=2 sw=2 et

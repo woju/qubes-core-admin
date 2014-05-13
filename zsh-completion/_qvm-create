@@ -1,0 +1,35 @@
+#compdef qvm-create
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-create() {
+  local netmodes="-p --proxy -n --net"
+  local hvmmodes="-H --hvm --hvm-template"
+  local tplmodes="-t --template -s --standalone"
+
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    "($tplmodes)"{-t,--template}'[TemplateVM]:TemplateVM:_qubes_vm_temp' \
+    '(-l --label)'{-l,--label}'[label]:label:_qubes_label_names' \
+    "($netmodes)"{-p,--proxy}'[create ProxyVM]' \
+    "($hvmmodes)"{-H,--hvm}'[create HVM]' \
+    "($hvmmodes)--hvm-template[create HVM template]" \
+    "($netmodes)"{-n,--net}'[create NetVM]' \
+    "($tplmodes)"{-s,--standalone}'[create standalone VM]' \
+    '(-R --root-move-from -r --root-copy-from)'{-R,--root-move-from}'[move file as root.img]:root image:_files' \
+    '(-R --root-move-from -r --root-copy-from)'{-r,--root-copy-from}'[copy file as root.img]:root image:_files' \
+    '(-m --mem)'{-m,--mem}'[initial memory in MiB]:memory in MiB:' \
+    '(-c --vcpus)'{-c,--vcpus}'[VCPUs count]:VCPUs:' \
+    '(-i --internal)'{-i,--internal}'[create VM as internal]' \
+    '--force-root[force to run even with root privileges]' \
+    '(-q --quiet)'{-q,--quiet}'[disable output]' \
+    ':new VM name: ' \
+  && return 0
+}
+
+_qvm-create "$@"
+
+# vim: ts=2 sw=2 et

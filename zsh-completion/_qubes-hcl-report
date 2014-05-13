@@ -1,0 +1,16 @@
+#compdef qubes-hcl-report
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qubes-hcl-report() {
+  _arguments -s : \
+    ':Qubes VM:_qubes_vm_all' \
+  && return 0
+}
+
+_qubes-hcl-report "$@"
+
+# vim: ts=2 sw=2 et

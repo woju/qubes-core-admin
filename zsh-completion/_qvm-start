@@ -1,0 +1,45 @@
+#compdef qvm-start
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-start() {
+  local curcontext="$curcontext" state line expl
+  
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    "(-q --quiet)"{-q,--quiet}'[less output]' \
+    '--tray[use tray notifications instead of stdout]' \
+    '--no-guid[do not start the GUId (ignored)]' \
+    '--drive[temporarily attach specified drive as CD/DVD or hard disk]:drive:->drive' \
+    '--hddisk[demporarily attach specified drive as hard disk]:drive:_files' \
+    '--cdrom[demporarily attach specified drive as CD/DVD]:drive:_files' \
+    '--install-windows-tools[attach Windows tools CDROM to the VM]' \
+    '--dvm[do actions necessary when preparing DVM image]' \
+    '--custom-config[use custom Xen config instead of Qubes-generated one]:Xen config:_files' \
+    '--debug[enable debug mode for this VM (until its shutdown)]' \
+    ':Qubes VM:_qubes_vm_notrunning' \
+  && return 0
+
+  case $state in
+  (drive)
+    if compset -P '*:'; then
+      _files "$@"
+    else  
+      if compset -S ':*'; then
+        suf=()
+      else
+        suf=( -qS ':' )
+      fi
+      compadd "$suf[@]" hd cdrom
+    fi
+    ;;
+
+  esac
+}
+
+_qvm-start "$@"
+
+# vim: ts=2 sw=2 et

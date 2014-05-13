@@ -1,0 +1,22 @@
+#compdef qvm-shutdown
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-shutdown() {
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '(-q --quiet)'{-q,--quiet}'[disable output]' \
+    '--force[force operation, even if may damage other VMs]' \
+    '--wait[wait for the VM(s) to shutdown]' \
+    '--all[shutdown all running VMs]' \
+    '*--exclude[exclude this VM name]:Qubes VM:_qubes_vm_running' \
+    ':Qubes VM:_qubes_vm_running' \
+  && return 0
+}
+
+_qvm-shutdown "$@"
+
+# vim: ts=2 sw=2 et

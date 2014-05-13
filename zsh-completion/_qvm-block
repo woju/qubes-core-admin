@@ -1,0 +1,67 @@
+#compdef qvm-block
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-block() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line expl
+  local modes="-h --help -l --list -A --attach-file -a --attach -d --detach"
+  local args suf
+  
+  args=( \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    "($modes --ro)"{-l,--list}'[list devices]' \
+    "($modes      --show-system-disks --no-auto-detach)"{-A,--attach-file}'[attach specified file]' \
+    "($modes      --show-system-disks --no-auto-detach)"{-a,--attach}'[attach physical device]' \
+    "($modes --ro --show-system-disks)"{-d,--detach}'[detach block device]' \
+    '--ro[force read-only mode]' \
+    '--no-auto-detach[fail when device is already connected to other VM]' \
+    '--show-system-disks[list also system disks]' \
+    '--force-root[force to run even with root privileges]' \
+  )
+
+  if (( $+words[(r)-a] )) || (( $+words[(r)--attach] )); then
+    args+=( \
+      ':Qubes VM:_qubes_vm_running' \
+      ':device in VM:->attachdev' \
+    )
+  elif (( $+words[(r)-A] )) || (( $+words[(r)--attach-file] )); then
+    args+=( \
+      ':Qubes VM:_qubes_vm_running' \
+      ':file in VM:->attachfile' \
+    )
+  elif (( $+words[(r)-d] )) || (( $+words[(r)--detach] )); then
+    args+=( \
+      ':detach specification:->detachspec' \
+    )
+  fi
+
+  _arguments : $args && return 0
+
+  case $state in
+  (attachdev|attachfile)
+    if compset -P '*:'; then
+      # TODO remote path, and do it Securely(tm)
+    else  
+      if compset -S ':*'; then
+        suf=()
+      else
+        suf=( -qS ':' )
+      fi
+      _qubes_vm_running "$suf[@]" "$@"
+    fi
+    ;;
+
+  (detachspec)
+    compadd "$@" $(qvm-block --show-system-disks | sed -e 's/\s.*//')
+    _qubes_vm_running "$@"
+    ;;
+  esac
+}
+
+_qvm-block "$@"
+
+# vim: ts=2 sw=2 et

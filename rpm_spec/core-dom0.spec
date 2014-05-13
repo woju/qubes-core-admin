@@ -177,6 +177,40 @@ mkdir -p $RPM_BUILD_ROOT/var/run/qubes
 install -d $RPM_BUILD_ROOT/etc/xdg/autostart
 install -m 0644 linux/system-config/qubes-guid.desktop $RPM_BUILD_ROOT/etc/xdg/autostart/
 
+install -d $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes-hcl-report $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes-prefs $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes-set-updates $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes_kernels $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes_label_ids $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes_label_names $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes_vm_all $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes_vm_net $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes_vm_notrunning $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes_vm_running $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qubes_vm_temp $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-add-appvm $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-add-template $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-backup $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-backup-restore $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-block $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-check $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-clone $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-create $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-create-default-dvm $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-firewall $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-grow-private $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-kill $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-ls $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-pci $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-prefs $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-remove $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-revert-template-changes $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-run $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-shutdown $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-start $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-sync-clock $RPM_BUILD_ROOT/usr/share/zsh/site-functions
+install -m 0644 zsh-completion/_qvm-template-commit $RPM_BUILD_ROOT/usr/share/zsh/site-functions
 %post
 
 # Create NetworkManager configuration if we do not have it
@@ -334,3 +368,36 @@ fi
 %attr(2770,root,qubes) %dir /var/log/qubes
 %attr(0770,root,qubes) %dir /var/run/qubes
 /etc/xdg/autostart/qubes-guid.desktop
+/usr/share/zsh/site-functions/_qubes-hcl-report
+/usr/share/zsh/site-functions/_qubes-prefs
+/usr/share/zsh/site-functions/_qubes-set-updates
+/usr/share/zsh/site-functions/_qubes_kernels
+/usr/share/zsh/site-functions/_qubes_label_ids
+/usr/share/zsh/site-functions/_qubes_label_names
+/usr/share/zsh/site-functions/_qubes_vm_all
+/usr/share/zsh/site-functions/_qubes_vm_net
+/usr/share/zsh/site-functions/_qubes_vm_notrunning
+/usr/share/zsh/site-functions/_qubes_vm_running
+/usr/share/zsh/site-functions/_qubes_vm_temp
+/usr/share/zsh/site-functions/_qvm-add-appvm
+/usr/share/zsh/site-functions/_qvm-add-template
+/usr/share/zsh/site-functions/_qvm-backup
+/usr/share/zsh/site-functions/_qvm-backup-restore
+/usr/share/zsh/site-functions/_qvm-block
+/usr/share/zsh/site-functions/_qvm-check
+/usr/share/zsh/site-functions/_qvm-clone
+/usr/share/zsh/site-functions/_qvm-create
+/usr/share/zsh/site-functions/_qvm-create-default-dvm
+/usr/share/zsh/site-functions/_qvm-firewall
+/usr/share/zsh/site-functions/_qvm-grow-private
+/usr/share/zsh/site-functions/_qvm-kill
+/usr/share/zsh/site-functions/_qvm-ls
+/usr/share/zsh/site-functions/_qvm-pci
+/usr/share/zsh/site-functions/_qvm-prefs
+/usr/share/zsh/site-functions/_qvm-remove
+/usr/share/zsh/site-functions/_qvm-revert-template-changes
+/usr/share/zsh/site-functions/_qvm-run
+/usr/share/zsh/site-functions/_qvm-shutdown
+/usr/share/zsh/site-functions/_qvm-start
+/usr/share/zsh/site-functions/_qvm-sync-clock
+/usr/share/zsh/site-functions/_qvm-template-commit

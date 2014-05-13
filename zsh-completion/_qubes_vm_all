@@ -1,0 +1,10 @@
+#autoload
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+compadd "$@" $(qvm-ls --raw-list)
+
+# vim: ts=2 sw=2 et

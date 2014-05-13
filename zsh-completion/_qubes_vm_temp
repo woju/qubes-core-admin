@@ -1,0 +1,18 @@
+#autoload
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+compadd "$@" $(python -c '
+import qubes.qubes
+qvmc = qubes.qubes.QubesVmCollection()
+qvmc.lock_db_for_reading()
+qvmc.load()
+qvmc.unlock_db()
+print("\n").join(vm.name for vm in qvmc.values()
+  if vm.is_template())
+')
+
+# vim: ts=2 sw=2 et

@@ -1,0 +1,39 @@
+#compdef qvm-add-template
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-add-template() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+  local param _temppath
+
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '(-p --path)'{-p,--path}'[path to the template directory]:template directory:_path_files -/' \
+    '(-c --conf)'{-c,--conf}'[Xen VM .conf file]:config file:->cfgfile' \
+    '--rpm[template files have been installed by RPM]' \
+    '--force-root[force to run even with root privileges]' \
+    ':TemplateVM name: ' \
+  && return 0
+
+  case $state in
+  (cfgfile)
+    if (( $+opt_args[-p] )); then
+      param=-p
+    elif (( $+opt_args[--path] )); then
+      param=--path
+    else
+      return 0
+    fi
+    _temppath=($opt_args[$param])
+    _files -W _temppath
+    ;;
+  esac
+}
+
+_qvm-add-template "$@"
+
+# vim: ts=2 sw=2 et

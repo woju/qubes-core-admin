@@ -1,0 +1,47 @@
+#compdef qvm-run
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-run() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '(-q --quiet)'{-q,--quiet} \
+    '(-a, --auto)'{-a,--auto}'[auto start the VM if not running]' \
+    '(-u --user)'{-u,--user}'[run command in a VM as a specified user]:VM user:' \
+    '--tray[use tray notifications instead of stdout]' \
+    '--all[run command on all currently running VMs]' \
+    '*--exclude[exclude this VM name]:Qubes VM:_qubes_vm_running' \
+    '--wait[wait for the VM(s) to shutdown]' \
+    '--shutdown[(deprecated) do "xl shutdown" for the VM(s)]' \
+    '--pause[do "xl pause" for the VM(s)]' \
+    '--unpause[do "xl unpause" for the VM(s)]' \
+    '(-p --pass-io)'{-p,--pass-io}'[pass stdin/stdout/stderr from remote program]' \
+    '--localcmd[with --pass-io, pass stdio to the given program]:Local command:_command_names' \
+    '--force[force operation, even if may damage other VMs]' \
+    '--nogui[run command without GUI]' \
+    '--filter-escape-chars[filter terminal escape sequences]' \
+    '--no-filter-escape-chars[do not filter terminal escape sequences]' \
+    '--no-color-output[disable marking VM output with red color]' \
+    ':Qubes VM:->vm' \
+    ':command: ' \
+    && return 0
+
+  case $state in
+  (vm)
+    if (( $+opt_args[-a] )) || (( $+opt_args[--auto] )); then
+      _qubes_vm_all "$@"
+    else
+      _qubes_vm_running "$@"
+    fi
+  esac
+}
+
+_qvm-run "$@"
+
+# vim: ts=2 sw=2 et

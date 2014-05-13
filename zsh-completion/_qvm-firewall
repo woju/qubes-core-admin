@@ -1,0 +1,37 @@
+#compdef qvm-firewall
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_fwpolicy() {
+  compadd "$@" allow deny
+}
+
+_qvm-firewall() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line expl
+  local modes="-h --help -l --list -a --add -d --del"
+  local policies="-P --policy -i --icmp -D --dns -Y --yum-proxy"
+  
+  _arguments : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    "($modes $policies)"{-l,--list}'[list firewall settings (default)]' \
+    "($modes -n --numeric -r --reload)"{-a,--add}'[add rule]' \
+    "($modes -n --numeric -r --reload)"{-d,--del}'[remove rule]' \
+    "(-P --policy)"{-P,--policy}'[set firewall policy]:policy:_fwpolicy' \
+    "(-i --icmp)"{-i,--icmp}'[set ICMP access]:policy:_fwpolicy' \
+    "(-D --dns)"{-D,--dns}'[set DNS access]:policy:_fwpolicy' \
+    "(-Y --yum-proxy)"{-Y,--yum-proxy}'[set access to Qubes yum proxy]:policy:_fwpolicy' \
+    "(-r --reload)"{-r,--reload}'[reload firewall]' \
+    "(-n --numeric)"{-n,--numeric}'[display port numbers instead of services]' \
+    '--force-root[force to run even with root privileges]' \
+    ':Qubes VM:_qubes_vm_all' \
+    '*:firewall rule: ' \
+  && return 0
+}
+
+_qvm-firewall "$@"
+
+# vim: ts=2 sw=2 et

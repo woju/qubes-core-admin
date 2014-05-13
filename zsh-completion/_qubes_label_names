@@ -1,0 +1,17 @@
+#autoload
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qubes_label_names() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+
+  compadd "$@" $(python -c 'import qubes.qubes; print(" ".join(l.name for l in qubes.qubes.QubesVmLabels.values()))')
+}
+
+_qubes_label_names "$@"
+
+# vim: ts=2 sw=2 et

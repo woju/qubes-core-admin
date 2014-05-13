@@ -1,0 +1,18 @@
+#compdef qvm-revert-template-changes
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-revert-template-changes() {
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '--force[do not ask for confirmation]' \
+    ':Qubes TemplateVM:_qubes_vm_temp' \
+  && return 0
+}
+
+_qvm-revert-template-changes "$@"
+
+# vim: ts=2 sw=2 et

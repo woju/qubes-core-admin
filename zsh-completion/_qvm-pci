@@ -1,0 +1,62 @@
+#compdef qvm-pci
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-pci() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+  local -a args
+  local -a _devices
+  local dev
+
+  args=( \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    "(-)"{-l,--list}'[list PCI devices]' \
+    "(-)"{-a,--add}'[attach PCI device]' \
+    "(-)"{-d,--delete}'[detach PCI device]' \
+  )
+
+  if (( $+words[(r)-l] )) || (( $+words[(r)--list] )); then
+    args+=(
+      ':QubesVM:_qubes_vm_all' \
+    )
+  elif (( $+words[(r)-a] )) || (( $+words[(r)--add] )); then
+    args+=(
+      ':QubesVM:_qubes_vm_notrunning' \
+      ':PCI device:->deviceadd' \
+    )
+  elif (( $+words[(r)-d] )) || (( $+words[(r)--delete] )); then
+    args+=(
+      ':QubesVM:_qubes_vm_notrunning' \
+      ':PCI device:->devicedel' \
+    )
+  fi
+
+  _arguments : $args && return 0
+
+  case $state in
+  (deviceadd)
+    IFS='
+'
+    _devices=( $(lspci | sed -e 's/:/\\:/' -e 's/\s/:/') )
+    _describe -t pcidev 'PCI device' _devices
+    ;;
+
+  (devicedel)
+    _devices=()
+    IFS='
+'
+    for dev in $(qvm-pci -l $words[CURRENT-1] | sed -e "s/\[\|\]\|'//g" -e 's/, /\n/g'); do
+      _devices+=( ${dev/:/\\:}:$(lspci | sed -ne "/^$dev/s/^$dev //p") )
+    done
+    _describe -t pcidev 'PCI device' _devices
+    ;;
+  esac
+}
+
+_qvm-pci "$@"
+
+# vim: ts=2 sw=2 et

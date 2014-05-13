@@ -1,0 +1,16 @@
+#compdef qvm-sync-clock
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qvm-sync-clock() {
+  _arguments -s : \
+    '(-v --verbose)[show progress]' \
+  && return 0
+}
+
+_qvm-sync-clock "$@"
+
+# vim: ts=2 sw=2 et

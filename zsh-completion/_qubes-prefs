@@ -1,0 +1,43 @@
+#compdef qubes-prefs
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qubes-prefs() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+
+  _arguments -s : \
+    '(- : *)'{-h,--help}'[show help message and exit]' \
+    '(- : *)'{-l,--list}'[list properties]' \
+    '(-)'{-s,--set}'[set property]' \
+    '(- 2)'{-g,--get}'[get property value]' \
+    ':property:->property' \
+    ':value:->value' \
+  && return 0
+
+  case $state in
+  (property)
+    compadd "$@" $(qubes-prefs -l | sed -e 's/\s.*//')
+    ;;
+  (value)
+    case $words[CURRENT-1] in
+    (clockvm|default-fw-netwm|default-netvm|updatevm)
+      _qubes_vm_all "$@"
+      ;;
+    (default-kernel)
+      _qubes_kernels "$@"
+      ;;
+    (default-template)
+      _qubes_vm_temp "$@"
+      ;;
+    esac
+    ;;
+  esac
+}
+
+_qubes-prefs "$@"
+
+# vim: ts=2 sw=2 et

@@ -1,0 +1,16 @@
+#compdef qubes-set-updates
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qubes-set-updates() {
+  _arguments -s : \
+    ':switch:((enable\:enable\ globally disable\:disable\ globally status\:status\ of\ dom0))' \
+  && return 0
+}
+
+_qubes-set-updates "$@"
+
+# vim: ts=2 sw=2 et

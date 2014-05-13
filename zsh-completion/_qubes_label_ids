@@ -1,0 +1,19 @@
+#autoload
+
+#
+# Copyright (c) 2014 Wojciech Porczyk <wojciech@porczyk.eu>
+# All rights reserved. Licensed under GPL-2 or later.
+#
+
+_qubes_label_ids() {
+  typeset -A opt_args
+  local curcontext="$curcontext" state line
+
+  local -a _labels
+  _labels=( $(python -c 'import qubes.qubes; print(" ".join("{}:{}".format(l.index, l.name) for l in qubes.qubes.QubesVmLabels.values()))') )
+  _describe -t 'label' 'Qubes label' _labels
+}
+
+_qubes_label_ids "$@"
+
+# vim: ts=2 sw=2 et
