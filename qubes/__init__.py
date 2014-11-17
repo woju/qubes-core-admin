@@ -75,6 +75,5 @@ class QubesVMMConnection(object):
         self.init_vmm_connection()
         return self._xs
 
-if not dry_run:
-    vmm = QubesVMMConnection()
+vmm = QubesVMMConnection()
 
