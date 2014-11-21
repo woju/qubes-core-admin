@@ -1006,9 +1006,9 @@ class QubesVM(qubes.vm.BaseVM):
         self.log.info('Sending monitor layout')
 
         try:
-            subprocess.call(
-                [qubes.config.system_path['monitor_layout_notify_cmd'],
-                    self.name])
+            import qubes.monitorlayoutnotify
+            monitor_layout = qubes.monitorlayoutnotify.get_monitor_layout()
+            qubes.monitorlayoutnotify.notify_vm(self, monitor_layout)
         except Exception as e:
             self.log.error('ERROR: {!s}'.format(e))
 
