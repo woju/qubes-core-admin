@@ -6,7 +6,7 @@
 
 Synopsis
 ========
-| qvm-create-default-dvm
+:command:`qvm-create-default-dvm`
 
 Authors
 =======
