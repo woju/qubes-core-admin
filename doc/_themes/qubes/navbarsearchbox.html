@@ -1,0 +1,14 @@
+{%- if pagename != "search" %}
+<div class="right menu">
+  <div class="item">
+    <div class="ui transparent icon input">
+      <form class="ui form" action="{{ pathto('search') }}" method="get">
+        <input type="text" name="q" placeholder="Search...">
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+      <i class="search link icon"></i>
+    </div>
+  </div>
+</div>
+{%- endif %}

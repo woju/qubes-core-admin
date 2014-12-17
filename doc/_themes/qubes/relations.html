@@ -1,0 +1,13 @@
+{# Switch to icon instead of text in `sm` view size for BS3 only. #}
+{%- if prev %}
+    <a class="item" href="{{ prev.link|e }}" title="{{ _('Previous Chapter: ') + prev.title|striptags }}">
+      <!--i class="left icon"></i> {{ prev.title|striptags|truncate(length=16, killwords=True) }}-->
+      <i class="left arrow icon"></i> {{ prev.title|striptags|truncate(killwords=True) }}
+    </a>
+{%- endif %}
+{%- if next %}
+    <a class="right item" href="{{ next.link|e }}" title="{{ _('Next Chapter: ') + next.title|striptags }}">
+      <!--i class="left icon"></i> {{ next.title|striptags|truncate(length=16, killwords=True) }} -->
+      {{ next.title|striptags|truncate(killwords=True) }} <i class="right arrow icon"></i>
+    </a>
+{%- endif %}

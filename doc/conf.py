@@ -15,11 +15,29 @@ import os
 import subprocess
 import sys
 import time
+import types
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../'))
+#sys.path.insert(0, os.path.abspath('../'))
+
+# -- Add paths to PYTHONPATH ---------------------------------------------------
+try:
+    docs_basepath = os.path.abspath(os.path.dirname(__file__))
+except NameError:
+    # sphinx-intl and six execute some code which will raise this NameError
+    # assume we're in the doc/ directory
+    docs_basepath = os.path.abspath(os.path.dirname('.'))
+
+addtl_paths = (
+        os.pardir,  # parent directory (for autodoc)
+        '_ext',  # custom Sphinx extensions
+)
+
+for path in addtl_paths:
+    sys.path.insert(0, os.path.abspath(os.path.join(docs_basepath, path)))
+
 
 # -- General configuration -----------------------------------------------------
 
@@ -37,6 +55,8 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
 
+#    'httpdomain',
+    'sphinx.ext.ifconfig',
     'qubes.dochelpers',
 ]
 
@@ -62,6 +82,7 @@ copyright = u'2010-{}, Invisible Things Lab'.format(time.strftime('%Y'))
 #
 # The short X.Y version.
 version = open('../version').read().strip()
+
 # The full version, including alpha/beta/rc tags.
 release = subprocess.check_output(['git', 'describe', '--long', '--dirty']).strip()
 
@@ -94,29 +115,82 @@ add_function_parentheses = True
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+#pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
 autodoc_member_order = 'groupwise'
+#autodoc_member_order = 'bysource'
+autosummary_generate = True
+#autoclass_content = 'init'
+
+# Enable todo output
+todo_include_todos = True
 
 # -- Options for HTML output ---------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #html_theme = 'default'
-html_theme = 'nature'
+#html_theme = 'nature'
+html_theme = 'qubes'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {
-#   'collapsiblesidebar': True,
+qubes_theme_options = {
+    # Navigation bar title. (Default: ``project`` value)
+    'navbar_title': "core-admin",
+
+    # Tab name for entire site. (Default: "Site")
+    'navbar_site_name': "Site",
+
+    # Tab name for the current pages TOC. (Default: "Page")
+    'navbar_pagenav_name': "Page",
+
+    # A list of tuples containing pages or urls to link to.
+    # Valid tuples should be in the following forms:
+    #    (name, page)                 # a link to a page
+    #    (name, "/aa/bb", 1)          # a link to an arbitrary relative url
+    #    (name, "http://example.com", True) # arbitrary absolute url
+    # Note the "1" or "True" value above as the third argument to indicate
+    # an arbitrary url.
+    # 'navbar_links': [
+    #     ("Examples", "examples"),
+    #     ("Link", "http://example.com", True),
+    # ],
+
+    # Global TOC depth for "site" navbar tab. (Default: 1)
+    # Switching to -1 shows all levels.
+    'globaltoc_depth': 2,
+
+    # Include hidden TOCs in Site navbar?
+    #
+    # Note: If this is "false", you cannot have mixed ``:hidden:`` and
+    # non-hidden ``toctree`` directives in the same page, or else the build
+    # will break.
+    #
+    # Values: "true" (default) or "false"
+    'globaltoc_includehidden': "true",
+
+    # HTML navbar class (Default: "navbar") to attach to <div> element.
+    # For black navbar, do "navbar navbar-inverse"
+    #'navbar_class': "navbar",
+    'navbar_class': "navbar",
+
+    # Fix navigation bar to top of page?
+    # Values: "true" (default) or "false"
+    'navbar_fixed_top': "false",
+
+    # Location of link to source.
+    # Options are "nav" (default), "footer" or anything else to exclude.
+    'source_link_position': "footer",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
+html_theme_path = ['_themes']
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -128,6 +202,7 @@ html_theme_options = {
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #html_logo = None
+html_logo = "qubes-logo.png"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -141,14 +216,22 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-html_last_updated_fmt = '%d.%m.%Y'
-
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
 #html_sidebars = {}
+
+if html_theme in ['qubes']:
+    html_theme_options = qubes_theme_options
+    html_sidebars = {
+        '**': ['sidebar.html', 'localtoc.html', 'sourcelink.html', 'searchbox.html'],
+    }
+else:
+    html_sidebars = {
+        'sidebar': ['localtoc.html', 'sourcelink.html', 'searchbox.html'],
+    }
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -158,19 +241,19 @@ html_last_updated_fmt = '%d.%m.%Y'
 #html_domain_indices = True
 
 # If false, no index is generated.
-#html_use_index = True
+html_use_index = True
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-#html_show_sourcelink = True
+html_show_sourcelink = True
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
-#html_show_sphinx = True
+html_show_sphinx = True
 
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
-#html_show_copyright = True
+html_show_copyright = True
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
@@ -319,3 +402,4 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('http://docs.python.org/', None)}
+

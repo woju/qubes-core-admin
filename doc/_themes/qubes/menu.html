@@ -1,0 +1,121 @@
+<!-- vim: set ts=2 sw=2 :-->
+
+{# ----------------------------------------------------------------------- #}
+{#                                 MACROS                                  #}
+{# ----------------------------------------------------------------------- #}
+
+{# Logo #}
+{% macro blockSidebarLogo() %}
+	{%- block sidebarlogo %}
+		{%- if logo %}<img src="{{ pathto('_static/' + logo, 1) }}">{%- endif %}
+	{%- endblock %}
+{% endmacro %}
+
+{# Global Table of Contents #}
+{# Local Table of Contents  #}
+{% macro blockNavbarTOC() %}
+	{% block navbartoc %}
+		{% include "globaltoc.html" %}
+		{% if theme_navbar_pagenav %}
+			{% include "navbartoc.html" %}
+		{% endif %}
+	{% endblock %}
+{% endmacro %}
+
+{# Navbar Extra ??? #}
+{% macro blockNavbarExtra() %}
+	{% block navbarextra %}
+	{% endblock %}
+{% endmacro %}
+
+{# Search #}
+{% macro blockNavbarSearch() %}
+	{% block navbarsearch %}
+		{% include "navbarsearchbox.html" %}
+	{% endblock %}
+{% endmacro %}
+
+{# Side Barrel (Previous / Next) #}
+{% macro blockSideBarrel() %}
+	{% block sidebarrel %}
+		{% include "relations.html" %}
+	{% endblock %}
+{% endmacro %}
+
+<div id="mainHead">
+	{# ----------------------------------------------------------------------- #}
+	{#                                MAIN MENU                                #}
+	{# ----------------------------------------------------------------------- #}
+  <div id="menu" class="ui borderless tiered menu">
+		{# -------------- #}
+		{# Logo and Title #}
+		{# -------------- #}
+		<a class="item" href="{{ pathto(master_doc) }}">
+			{{ blockSidebarLogo() }}
+			{% if theme_navbar_title -%}{{ theme_navbar_title|e }}{%- else -%}{{ project|e }}{%- endif -%}
+		</a>
+
+		{# ---------------- #}
+		{# Document Version #}
+		{# ---------------- #}
+		<span class="item text"><b>{{ version|e }}</b></span>
+
+		{# ---------------------- #}
+		{# Theme Navbar Links ??? #}
+		{# ---------------------- #}
+		{% if theme_navbar_links %}
+		<div class="ui dropdown item">
+			<i class="dropdown icon" tabindex="0"></i>
+			Theme Navbar Links		
+			<div class="menu" tabindex="-1" style="">
+			{%- for link in theme_navbar_links %}
+				<a class="item" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
+			{%- endfor %}
+			</div>
+		</div>
+		{% endif %}
+
+		{# ------------------------ #}
+		{# Global Table of Contents #}
+		{# ------------------------ #}
+		{# Local Table of Contents  #}
+		{# ------------------------ #}
+		{{ blockNavbarTOC() }}
+
+		{# ---------------- #}
+		{# Navbar Extra ??? #}
+		{# ---------------- #}
+		<a class="item text">
+			{{ blockNavbarExtra() }}
+		</a>
+
+		{# ---------------- #}
+		{# Source Code Link #}
+		{# ---------------- #}
+		{% if theme_source_link_position == "nav" %}
+			{% include "sourcelink.html" %}
+		{% endif %}
+
+		{# ------ #}
+		{# Search #}
+		{# ------ #}
+		{{ blockNavbarSearch() }}
+
+		<div class="ui sub menu">
+			{# ----------------------------- #}
+			{# Side Barrel (Previous / Next) #}
+			{# ----------------------------- #}
+			{% if theme_navbar_sidebarrel %}
+				{{ blockSideBarrel() }}
+			{% endif %}
+		</div>
+  </div>
+
+	{# ----------------------------------------------------------------------- #}
+	{#                           MOBILE MENU BUTTON                            #}
+	{# ----------------------------------------------------------------------- #}
+	<div id="menu_mobile" class="ui black labeled icon button">
+		<i class="icon list layout"></i>
+		Menu
+	</div>
+</div>
