@@ -122,7 +122,7 @@ mac
 
     Can be used to force specific of virtual ethernet card in the VM. Setting
     to ``auto`` will use automatic-generated MAC - based on VM id. Especially
-    useful when some licencing depending on static MAC address.
+    useful when some licensing depending on static MAC address.
 
     For template-based HVM ``auto`` mode means to clone template MAC.
 
@@ -161,7 +161,7 @@ guiagent_installed
     Accepted values: ``True``, ``False``
 
     This HVM have gui agent installed. This option disables full screen GUI
-    virtualization and enables per-window seemless GUI mode. This option will
+    virtualization and enables per-window seamless GUI mode. This option will
     be automatically turned on during Qubes Windows Tools installation, but if
     you install qubes gui agent in some other OS, you need to turn this option
     on manually. You can turn this option off to troubleshoot some early HVM OS

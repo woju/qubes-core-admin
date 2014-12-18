@@ -56,7 +56,7 @@ def enable_debug():
         handler.setFormatter(formatter_debug)
 
 def get_vm_logger(vmname):
-    '''Initialise logging for particular VM name
+    '''Initialize logging for particular VM name
 
     :param str vmname: VM's name
     :rtype: :py:class:`logging.Logger`
