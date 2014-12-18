@@ -98,9 +98,7 @@ class QubesVMMConnection(object):
         if 'xen.lowlevel.xs' in sys.modules:
             self._xs = xen.lowlevel.xs.xs()
         self._libvirt_conn = libvirt.open(defaults['libvirt_uri'])
-        # XXX: Should this be 'if self._libvirt_conn is None:' or
-        # has __eq__ method been overridden?
-        if self._libvirt_conn == None:  # noqa
+        if self._libvirt_conn is None:
             raise QubesException("Failed connect to libvirt driver")
         libvirt.registerErrorHandler(self._libvirt_error_handler, None)
         atexit.register(self._libvirt_conn.close)
