@@ -23,7 +23,7 @@
 #
 import string
 
-# This are only defaults - can be overriden by QMemmanServer with values from
+# This are only defaults - can be overridden by QMemmanServer with values from
 # config file
 CACHE_FACTOR = 1.3
 MIN_PREFMEM = 200*1024*1024
@@ -45,7 +45,7 @@ def parse_meminfo(untrusted_meminfo):
 
 def is_meminfo_suspicious(domain, untrusted_meminfo):
     ret = False
-    
+
 #check whether the required keys exist and are not negative
     try:
         for i in ('MemTotal', 'MemFree', 'Buffers', 'Cached', 'SwapTotal', 'SwapFree'):
@@ -61,7 +61,7 @@ def is_meminfo_suspicious(domain, untrusted_meminfo):
     if not ret and untrusted_meminfo['MemTotal'] < untrusted_meminfo['MemFree'] + untrusted_meminfo['Cached'] + untrusted_meminfo['Buffers']:
         ret = True
 #we could also impose some limits on all the above values
-#but it has little purpose - all the domain can gain by passing e.g. 
+#but it has little purpose - all the domain can gain by passing e.g.
 #very large SwapTotal is that it will be assigned all free Xen memory
 #it can be achieved with legal values, too, and it will not allow to
 #starve existing domains, by design
@@ -84,7 +84,7 @@ def refresh_meminfo_for_domain(domain, untrusted_xenstore_key):
 #sanitized, can assign
         domain.meminfo = untrusted_meminfo
         domain.mem_used =  domain.meminfo['MemTotal'] - domain.meminfo['MemFree'] - domain.meminfo['Cached'] - domain.meminfo['Buffers'] + domain.meminfo['SwapTotal'] - domain.meminfo['SwapFree']
-                        
+
 def prefmem(domain):
 #dom0 is special, as it must have large cache, for vbds. Thus, give it a special boost
     if domain.id == '0':
@@ -96,7 +96,7 @@ def memory_needed(domain):
 #in balance(), "distribute total_available_memory proportionally to mempref" relies on this exact formula
     ret = prefmem(domain) - domain.memory_actual
     return ret
-    
+
 #prepare list of (domain, memory_target) pairs that need to be passed
 #to "xm memset" equivalent in order to obtain "memsize" of memory
 #return empty list when the request cannot be satisfied
@@ -114,7 +114,7 @@ def balloon(memsize, domain_dictionary):
         if need < 0:
             print 'balloon: dom' , i, 'has actual memory', domain_dictionary[i].memory_actual
             donors.append((i,-need))
-            available-=need   
+            available-=need
     print 'req=', memsize, 'avail=', available, 'donors', donors
     if available<memsize:
         return ()
@@ -187,7 +187,7 @@ def balance_when_enough_memory(domain_dictionary, xen_free_memory, total_mem_pre
 #    print 'balance(enough): xen_free_memory=', xen_free_memory, 'requests:', donors_rq + acceptors_rq
     return donors_rq + acceptors_rq
 
-#when not enough mem to make everyone be above prefmem, make donors be at prefmem, and 
+#when not enough mem to make everyone be above prefmem, make donors be at prefmem, and
 #redistribute anything left between acceptors
 def balance_when_low_on_memory(domain_dictionary, xen_free_memory, total_mem_pref_acceptors, donors, acceptors):
     donors_rq = list()
@@ -214,13 +214,13 @@ def balance_when_low_on_memory(domain_dictionary, xen_free_memory, total_mem_pre
 
 
 #redistribute memory across domains
-#called when one of domains update its 'meminfo' xenstore key 
+#called when one of domains update its 'meminfo' xenstore key
 #return the list of (domain, memory_target) pairs to be passed to
-#"xm memset" equivalent 
+#"xm memset" equivalent
 def balance(xen_free_memory, domain_dictionary):
 
 #sum of all memory requirements - in other words, the difference between
-#memory required to be added to domains (acceptors) to make them be at their 
+#memory required to be added to domains (acceptors) to make them be at their
 #preferred memory, and memory that can be taken from domains (donors) that
 #can provide memory. So, it can be negative when plenty of memory.
     total_memory_needed = 0
@@ -230,7 +230,7 @@ def balance(xen_free_memory, domain_dictionary):
 
 #sum of memory preferences of all domains that require more memory
     total_mem_pref_acceptors = 0
-    
+
     donors = list()	# domains that can yield memory
     acceptors = list()  # domains that require more memory
 #pass 1: compute the above "total" values
@@ -249,7 +249,7 @@ def balance(xen_free_memory, domain_dictionary):
         total_memory_needed += need
         total_mem_pref += prefmem(domain_dictionary[i])
 
-    total_available_memory = xen_free_memory - total_memory_needed  
+    total_available_memory = xen_free_memory - total_memory_needed
     if total_available_memory > 0:
         return balance_when_enough_memory(domain_dictionary, xen_free_memory, total_mem_pref, total_available_memory)
     else:
