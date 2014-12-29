@@ -81,6 +81,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
     'sphinx.ext.doctest',
+    'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
@@ -279,6 +280,9 @@ html_show_copyright = True
 
 # This is the file name suffix for HTML files (e.g. ".xhtml").
 #html_file_suffix = None
+
+# html links do not work with svg!
+graphviz_output_format = 'png'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'core-admin-doc'
