@@ -1,31 +1,56 @@
+#!/usr/bin/python2 -O
+# -*- coding: utf-8 -*-
 '''
-Created on Dec 25, 2014
+Qubes OS - Logging Tests
 
-@author: user
+:copyright: © 2010-2014 Invisible Things Lab
+
+@author: Jason Mehring
 '''
+
+__author__ = 'Invisible Things Lab'
+__license__ = 'GPLv2 or later'
+__version__ = 'R3'
+
+import os
+import sys
+import logging
 import unittest
+
 import qubes.log
+
 
 class Test(unittest.TestCase):
 
-
-    def setUp(self):
-        pass
-
-
-    def tearDown(self):
-        pass
-
-
     def test_ansi_text(self):
-        result = qubes.log.ansi_text(text="Foobar")
-        self.assertEqual(result, "Foobar", "Ansi failed to colorize")
+        result = qubes.log.ansi_text(text='Foobar')
+        self.assertEqual(result, 'Foobar', 'Ansi failed to colorize')
 
     def test_ansi_text_colors(self):
-        result = qubes.log.ansi_text(text="Foobar", **{'color': 'blue', 'inverse': True})
-        self.assertEqual(result, "\x1b[7;34mFoobar\x1b[0m", "Ansi failed to colorize")
+        result = qubes.log.ansi_text(text='Foobar', **{'color': 'blue', 'inverse': True})
+        self.assertEqual(result, '\x1b[7;34mFoobar\x1b[0m', 'Ansi failed to colorize')
 
+    def test_get_configuration_correct_config_filename(self):
+        config = qubes.log.get_configuration(filename='qubes/log.yaml')
+        self.assertEquals(config.has_key('__ERROR__'), False, 'Configuration file failed to load')
 
-if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
-    unittest.main()
+    def test_get_configuration_incorrect_config_filename(self):
+        config = qubes.log.get_configuration(filename='path_does_not_exist.yaml')
+        self.assertEquals(config.has_key('__ERROR__'), True, 'Default logger should have been enabled but received a value of True')
+
+    def test_get_configuration_parse_error(self):
+        logging.root.handlers =  []
+        config = qubes.log.get_configuration(filename='/bin/true')
+        self.assertEquals(config.has_key('__ERROR__'), True, 'Default logger should have been enabled but received a value of True')
+
+    def test_get_configuration_env_config_filename(self):
+        os.environ['LOG_CONFIG_FILENAME_TEST'] = 'qubes/log.yaml'
+        config = qubes.log.get_configuration(env_key='LOG_CONFIG_FILENAME_TEST')
+        self.assertEquals(config.has_key('__ERROR__'), False, 'Configuration file failed to load')
+
+#if __name__ == '__main__':
+#    #import sys;sys.argv = ['', 'Test.testName']
+#    unittest.main()
+
+if __name__=="__main__":
+    unittest.main(module=__name__, buffer=True, exit=False)
