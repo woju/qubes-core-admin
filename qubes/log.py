@@ -8,37 +8,66 @@
 See also: :py:attr:`qubes.vm.qubesvm.QubesVM.logger`
 '''
 
-import collections
-import copy
-import logging.config
 import os
+import sys
 import re
-
+import copy
+import collections
+import logging.config
 import yaml
+
 from yaml.parser import ParserError
+from yaml.reader import ReaderError
 
+# Logging filename
+LOG_FILENAME = '/var/log/qubes/qubes.log'
 
-# XXX: - I can change this to json or ini if we don't want to use yaml lib
-#      - I will provide examples of all formats to show differences in
-#        readability
-#FORMAT_CONSOLE = '%(message)s'
-#FORMAT_LOG = '%(asctime)s%(levelname)8s: %(module)s.%(funcName)s: %(message)s'
-#FORMAT_DEBUG = '%(asctime)s %(levelname)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d] %(name)s: %(message)s'
-#LOGPATH = '/var/log/qubes'
-#LOGFILE = os.path.join(LOGPATH, 'qubes.log')
+# Logging configuration file
+CONFIG_FILENAME = os.path.join(os.path.dirname(__file__), 'log.yaml')
 
-# Keep incase we have a problem loading configuration file so logs will
-# still work in basic mode
-LOGPATH = '/var/log/qubes'
-LOGFILE = os.path.join(LOGPATH, 'qubes.log')
-
-#FORMATTER_CONSOLE = logging.Formatter(FORMAT_CONSOLE)
-#FORMATTER_LOG = logging.Formatter(FORMAT_LOG)
-#FORMATTER_DEBUG = logging.Formatter(FORMAT_DEBUG)
-
-# Logging in configuration file so it can be changed easily without
-# touching code
-LOGGING_CONFIGURATION = os.path.join(os.path.dirname(__file__), 'log.yaml')
+CONFIG = {
+    'LOGFILE': LOG_FILENAME,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            'format': 'CONS: %(message)s'},
+        'simple': {
+            'format': 'SIMP %(asctime)s - %(levelname)8s - %(message)s'},
+        'info': {
+            'format': 'INFO: %(asctime)s%(levelname)8s: %(name)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d]: %(message)s'},
+        'debug': {
+            'format': 'DEBU: %(asctime)s%(levelname)8s: %(name)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d]: %(message)s'},
+    },
+    'handlers': {
+        'info_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+            'stream': 'ext://sys.stdout'},
+        'debug_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'debug',
+            'stream': 'ext://sys.stdout'},
+        'info_file_handler': {
+            'backupCount': 5,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'encoding': 'utf8',
+            'filename': LOG_FILENAME,
+            'formatter': 'info',
+            'maxBytes': 10485760},
+        'debug_file_handler': {
+            'backupCount': 5,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'encoding': 'utf8',
+            'filename': LOG_FILENAME,
+            'formatter': 'debug',
+            'maxBytes': 10485760},
+    },
+    'root': {
+        'handlers': [
+            'info_console',
+            'info_file_handler'],
+        'level': 'INFO'},
+    'version': 1}
 
 ANSI_COLORS = {
     ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
@@ -46,9 +75,214 @@ ANSI_COLORS = {
 }
 
 
+def enable(config_filename=CONFIG_FILENAME, level=logging.INFO,
+           env_key='LOG_CONFIG_FILENAME'):
+    '''Enable global logging
+
+    Uses a YAML configuration file to set any configuration details
+
+    :param str config_filename: YAML logging configuration filename
+    :param int level: Logging level.  IE: 20 or logging.INFO
+    :param str env_key: Environment key containing configuration filename
+    :returns: Returns True if configuration file was successfully used or False if default values were used
+    :rtype: boolean
+
+    Use :py:mod:`logging` module from standard library to log messages.
+
+    >>> import qubes.log
+    >>> qubes.log.enable()          # doctest: +SKIP
+    >>> import logging
+    >>> logging.warning('Foobar')   # doctest: +SKIP
+    '''
+
+    # Logging has already been enabled, return
+    if logging.root.handlers:
+        return
+
+    config = get_configuration(config_filename, env_key)
+    logging.config.dictConfig(config)
+
+    # Log error that configuration file could not be found / used
+    if '__ERROR__' in config.keys():
+        logging.warn(config.get('_ERROR_', 'Default Configuration Enabled!'))
+
+
+def enable_debug(
+        config_filename=CONFIG_FILENAME,
+        env_key='LOG_CONFIG_FILENAME'):
+    '''Enable debug logging
+
+    Enable more messages and additional info to message format.
+    '''
+    config = get_configuration(config_filename, env_key)
+
+    for logger in config.get('loggers', {}).keys():
+        config['loggers'][logger]['level'] = 'DEBUG'
+        config['loggers'][logger]['handlers'] = [
+            'debug_console',
+            'debug_file_handler']
+
+    config['root']['level'] = 'DEBUG'
+    config['root']['handlers'] = ['debug_console', 'debug_file_handler']
+
+    logging.config.dictConfig(config)
+
+    # Log error that configuration file could not be found / used
+    if '__ERROR__' in config.keys():
+        logging.warn(config.get('_ERROR_', 'Default Configuration Enabled!'))
+
+
+def get_vm_logger(
+        vmname,
+        config_filename=CONFIG_FILENAME,
+        env_key='LOG_CONFIG_FILENAME'):
+    '''Initialize logging for particular VM name
+
+    :param str vmname: VM's name
+    :rtype: :py:class:`logging.Logger`
+    '''
+
+    config = get_configuration(config_filename, env_key)
+    log_path = os.path.dirname(config.get('LOG_FILENAME', LOG_FILENAME))
+    filename = os.path.join(log_path, 'vm', vmname + '.log')
+
+    logger = add_logger('vm.{0}'.format(vmname),
+                        config,
+                        level=logging.INFO,
+                        filename=filename,
+                        handlers=['info_file_handler']
+                        )
+
+    return logger
+
+
+def get_configuration(filename=None, env_key=None):
+    message = None
+
+    # Use the configuration filename provided in environment if available
+    if env_key:
+        filename = os.getenv(env_key, filename)
+
+    if filename and os.path.exists(filename):
+        # Enabe logging with values in logging configuration file
+        try:
+            with open(filename, 'rt') as infile:
+                config = yaml.load(infile.read())
+        except (IOError, ParserError, ReaderError) as e:
+            config = {
+                '__ERROR__': 'Can not load logging configuration file, using defaults: {0}'.format(e)}
+    else:
+        config = {
+            '__ERROR__': 'Can not find logging configuration file {0}. Using defaults.'.format(filename)}
+
+    if '__ERROR__' in config.keys():
+        config.update(CONFIG)
+
+    return config
+
+
+def add_logger(
+        name,
+        config,
+        level=logging.INFO,
+        filename=LOG_FILENAME,
+        handlers=['info_file_handler'],
+        propagate=0):
+    if isinstance(handlers, str):
+        handlers = [handlers]
+
+    handlers = get_handlers(config, handlers, filename=filename)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.propagate = propagate
+    for handler in handlers.values():
+        logger.addHandler(handler)
+
+    return logger
+
+
+def get_formatter(config, formatter):
+    config = copy.deepcopy(config)
+    dict_configurator = logging.config.DictConfigurator({})
+
+    formatter_dict = config.get('formatters', {}).get(formatter, {})
+    try:
+        formatter_dict = dict_configurator.configure_formatter(formatter_dict)
+    except Exception:
+        raise ValueError('Unable to configure '
+                         'formatter %r: %s' % (formatter, e))
+    return formatter_dict
+
+
+def get_formatters(config):
+    #config = copy.deepcopy(config)
+    dict_configurator = logging.config.DictConfigurator({})
+
+    formatters = config.get('formatters', {})
+    for name in formatters:
+        try:
+            formatters[name] = dict_configurator.configure_formatter(
+                formatters[name])
+        except Exception:
+            raise ValueError('Unable to configure '
+                             'formatter %r: %s' % (name, e))
+    return formatters
+
+
+def get_handler(config, handler, **args):
+    config = copy.deepcopy(config)
+    dict_configurator = logging.config.DictConfigurator({})
+    dict_configurator.config = config
+
+    handler_dict = config.get('handlers', {}).get(handler, {})
+    formatter = get_formatter(config, handler_dict.get('formatter', ''))
+
+    # Override config value
+    for key, value in args.items():
+        if key in handler_dict:
+            handler_dict[key] = value
+
+    deferred = False
+    try:
+        result = dict_configurator.configure_handler(handler_dict)
+        result.name = handler
+        handler_dict = result
+    except Exception as e:
+        if 'target not configured yet' in str(e):
+            deferred = True
+        else:
+            raise ValueError('Unable to configure handler '
+                             '%r: %s' % (handler, e))
+
+    # Now do any that were deferred
+    if deferred:
+        try:
+            result = dict_configurator.configure_handler(handler_dict)
+            result.name = handler
+            handler_dict = result
+        except Exception as e:
+            raise ValueError('Unable to configure handler '
+                             '%r: %s' % (handler, e))
+
+    handler_dict.formatter = formatter
+    return handler_dict
+
+
+def get_handlers(config, handlers=None, **args):
+    if handlers is None:
+        handlers = config.get('handlers', {}).keys()
+
+    results = {}
+    for name in sorted(handlers):
+        results[name] = get_handler(config, name, **args)
+
+    return results
+
+
 def ansi_text(text, color=None, bold=False, faint=False,
               underline=False, inverse=False, strike_through=False):
-    """
+    '''
     Wrap text in ANSI escape codes.
 
     :param str text: Text string to wrap
@@ -61,7 +295,7 @@ def ansi_text(text, color=None, bold=False, faint=False,
     :param boolean strike_through: Strike-through font
     :returns: wrapped ANSI escaped text
     :rtype: str
-    """
+    '''
 
     code_map = collections.OrderedDict([('bold', 1),
                                         ('faint', 2),
@@ -185,93 +419,5 @@ class ColorFormatter(logging.Formatter):
         self._colorized = True
 
 
-def setup(log_path=LOGGING_CONFIGURATION, log_level=logging.INFO,
-          env_key='LOG_CFG'):
-    '''Setup logging configuration
-
-    LOG_CFG=logging.yaml python
-
-    '''
-    if logging.root.handlers:
-        return
-
-    path = log_path
-    value = os.getenv(env_key, None)
-
-    if value:
-        path = value
-    if os.path.exists(path):
-        try:
-            with open(path, 'rt') as infile:
-                config = yaml.load(infile.read())
-            logging.config.dictConfig(config)
-        except (IOError, ParserError) as e:
-            logging.basicConfig(filename=LOGFILE, level=log_level,
-                                encoding='utf-8')
-            logging.error('Can not load logging configuration file: ',
-                          exc_info=True)
-    else:
-        logging.basicConfig(
-            filename=LOGFILE,
-            level=log_level,
-            encoding='utf-8')
-        logging.error(
-            'Can not load logging configuration file: {0}'.format(path))
-
-
-def enable():
-    '''Enable global logging
-
-    Use :py:mod:`logging` module from standard library to log messages.
-
-    >>> import qubes.log
-    >>> qubes.log.enable()          # doctest: +SKIP
-    >>> import logging
-    >>> logging.warning('Foobar')   # doctest: +SKIP
-    '''
-    setup()
-
-    # if logging.root.handlers:
-    # return
-
-    # handler_console = logging.StreamHandler(sys.stderr)
-    # handler_console.setFormatter(FORMATTER_CONSOLE)
-    # logging.root.addHandler(handler_console)
-
-    # handler_log = logging.FileHandler(LOGFILE, 'a', encoding='utf-8')
-    # handler_log.setFormatter(FORMATTER_LOG)
-    # logging.root.addHandler(handler_log)
-
-    # logging.root.setLevel(logging.INFO)
-
-
-def enable_debug():
-    '''Enable debug logging
-
-    Enable more messages and additional info to message format.
-    '''
-    setup()
-
-    logging.root.setLevel(logging.DEBUG)
-
-    for handler in logging.root.handlers:
-        handler.setFormatter(FORMATTER_DEBUG)
-
-
-def get_vm_logger(vmname):
-    '''Initialize logging for particular VM name
-
-    :param str vmname: VM's name
-    :rtype: :py:class:`logging.Logger`
-    '''
-
-    logger = logging.getLogger('vm.' + vmname)
-    handler = logging.FileHandler(os.path.join(LOGPATH, 'vm', vmname + '.log'))
-    handler.setFormatter(FORMATTER_LOG)
-    logger.addHandler(handler)
-
-    return logger
-
 # enable Logging
 logging.handlers.ColorFormatter = ColorFormatter
-setup()
