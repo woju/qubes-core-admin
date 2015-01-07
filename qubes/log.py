@@ -1,42 +1,44 @@
 #!/usr/bin/python2 -O
 # -*- coding: utf-8 -*-
 
-# autopep8 --ignore E309 -a -i
-
-'''Qubes logging routines
+'''Qubes logging routines.
 
 See also: :py:attr:`qubes.vm.qubesvm.QubesVM.logger`
+
 '''
 
 import os
-import sys
 import re
 import copy
 import collections
 import logging.config
-import yaml
+import json
 
-from yaml.parser import ParserError
-from yaml.reader import ReaderError
+# Logging configuration file
+try:
+    import yaml
+    from yaml.parser import ParserError
+    from yaml.reader import ReaderError
+    CONFIG_FILENAME = os.path.join(os.path.dirname(__file__), 'log.yaml')
+except ImportError:
+    CONFIG_FILENAME = os.path.join(os.path.dirname(__file__), 'log.json')
 
 # Logging filename
 LOG_FILENAME = '/var/log/qubes/qubes.log'
 
-# Logging configuration file
-CONFIG_FILENAME = os.path.join(os.path.dirname(__file__), 'log.yaml')
 
 CONFIG = {
     'LOGFILE': LOG_FILENAME,
     'disable_existing_loggers': False,
     'formatters': {
         'console': {
-            'format': 'CONS: %(message)s'},
+            'format': '%(message)s'},
         'simple': {
-            'format': 'SIMP %(asctime)s - %(levelname)8s - %(message)s'},
+            'format': '%(asctime)s - %(levelname)9s - %(message)s'},
         'info': {
-            'format': 'INFO: %(asctime)s%(levelname)8s: %(name)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d]: %(message)s'},
+            'format': '%(asctime)s%(levelname)9s: %(name)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d]: %(message)s'},
         'debug': {
-            'format': 'DEBU: %(asctime)s%(levelname)8s: %(name)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d]: %(message)s'},
+            'format': '%(asctime)s%(levelname)9s: %(name)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d]: %(message)s'},
     },
     'handlers': {
         'info_console': {
@@ -77,15 +79,13 @@ ANSI_COLORS = {
 
 def enable(config_filename=CONFIG_FILENAME, level=logging.INFO,
            env_key='LOG_CONFIG_FILENAME'):
-    '''Enable global logging
+    '''Enable global logging.
 
-    Uses a YAML configuration file to set any configuration details
+    Uses a YAML/JSON configuration file to set any configuration details
 
-    :param str config_filename: YAML logging configuration filename
+    :param str config_filename: YAML/JSON logging configuration filename
     :param int level: Logging level.  IE: 20 or logging.INFO
     :param str env_key: Environment key containing configuration filename
-    :returns: Returns True if configuration file was successfully used or False if default values were used
-    :rtype: boolean
 
     Use :py:mod:`logging` module from standard library to log messages.
 
@@ -93,6 +93,7 @@ def enable(config_filename=CONFIG_FILENAME, level=logging.INFO,
     >>> qubes.log.enable()          # doctest: +SKIP
     >>> import logging
     >>> logging.warning('Foobar')   # doctest: +SKIP
+
     '''
 
     # Logging has already been enabled, return
@@ -107,13 +108,19 @@ def enable(config_filename=CONFIG_FILENAME, level=logging.INFO,
         logging.warn(config.get('_ERROR_', 'Default Configuration Enabled!'))
 
 
-def enable_debug(
-        config_filename=CONFIG_FILENAME,
-        env_key='LOG_CONFIG_FILENAME'):
-    '''Enable debug logging
+def enable_debug(config_filename=CONFIG_FILENAME,
+                 env_key='LOG_CONFIG_FILENAME'):
+    '''Enable debug logging.
 
     Enable more messages and additional info to message format.
+
+    Uses a YAML/JSON configuration file to use custom handlers and formatters
+
+    :param str config_filename: YAML/JSON logging configuration filename
+    :param str env_key: Environment key containing configuration filename
+
     '''
+
     config = get_configuration(config_filename, env_key)
 
     for logger in config.get('loggers', {}).keys():
@@ -132,14 +139,17 @@ def enable_debug(
         logging.warn(config.get('_ERROR_', 'Default Configuration Enabled!'))
 
 
-def get_vm_logger(
-        vmname,
-        config_filename=CONFIG_FILENAME,
-        env_key='LOG_CONFIG_FILENAME'):
-    '''Initialize logging for particular VM name
+def get_vm_logger(vmname, config_filename=CONFIG_FILENAME,
+                  env_key='LOG_CONFIG_FILENAME'):
+    '''Initialize logging for particular VM name.
+
+    Uses a YAML/JSON configuration file to use custom handlers and formatters
 
     :param str vmname: VM's name
+    :param str config_filename: YAML/JSON logging configuration filename
+    :param str env_key: Environment key containing configuration filename
     :rtype: :py:class:`logging.Logger`
+
     '''
 
     config = get_configuration(config_filename, env_key)
@@ -157,23 +167,51 @@ def get_vm_logger(
 
 
 def get_configuration(filename=None, env_key=None):
-    message = None
+    '''Parse YAML/JSON Configuration file.
+
+    Parses YAML/JSON configuration file which is converted into a dictionary that
+    can be used with the logging configuration to set up logging defaults
+
+    If an environmental variable is set with the same name as contained within
+    env_key, that value is used as the filename over-riding a filename value if
+    it also exists.
+
+    :param str filename: YAML/JSON logging configuration filename
+    :param str env_key: Environment key containing configuration filename
+    :rtype: :py:class:`dict`
+
+    '''
+
+    message_noload = 'Can not load logging configuration file, using defaults: {0}'
+    message_wrongformat = 'Configuration file {0} does not seem to be in JSON or YAML format. Using defaults.'
+    message_nofile = 'Can not find logging configuration file {0}. Using defaults.'
 
     # Use the configuration filename provided in environment if available
     if env_key:
         filename = os.getenv(env_key, filename)
 
+    # Enable logging with values in logging configuration file
     if filename and os.path.exists(filename):
-        # Enabe logging with values in logging configuration file
-        try:
-            with open(filename, 'rt') as infile:
-                config = yaml.load(infile.read())
-        except (IOError, ParserError, ReaderError) as e:
-            config = {
-                '__ERROR__': 'Can not load logging configuration file, using defaults: {0}'.format(e)}
+        extension = os.path.splitext(filename)[1][1:].lower()
+
+        if extension in ['json']:
+            try:
+                with open(filename, 'r') as infile:
+                    config = json.load(infile)
+            except (IOError) as e:
+                config = {'__ERROR__': message_noload.format(e)}
+
+        elif extension in ['yml', 'yaml']:
+            try:
+                with open(filename, 'r') as infile:
+                    config = yaml.load(infile.read())
+            except (IOError, ParserError, ReaderError) as e:
+                config = {'__ERROR__': message_noload.format(e)}
+
+        else:
+            config = {'__ERROR__': message_wrongformat.format(filename)}
     else:
-        config = {
-            '__ERROR__': 'Can not find logging configuration file {0}. Using defaults.'.format(filename)}
+        config = {'__ERROR__': message_nofile.format(filename)}
 
     if '__ERROR__' in config.keys():
         config.update(CONFIG)
@@ -181,13 +219,25 @@ def get_configuration(filename=None, env_key=None):
     return config
 
 
-def add_logger(
-        name,
-        config,
-        level=logging.INFO,
-        filename=LOG_FILENAME,
-        handlers=['info_file_handler'],
-        propagate=0):
+def add_logger(name, config, level=logging.INFO, filename=LOG_FILENAME,
+               handlers=None, propagate=False):
+    '''Add Logger.
+
+    Adds a new logger using custom handlers and formatters described within
+    the config dictionary
+
+    :param dict config: Dictionary containing logging configuration directives
+    :param int level: Logging level to set logger at
+    :param str filename: Path and filename of logger log
+    :param list handlers: List if handlers (str) to include.
+    :param boolean propagate: If True, log events will also propagate to other loggers
+    :rtype: :py:class:`logging.Logger`
+
+    '''
+
+    if not handlers:
+        handlers = ['info_file_handler']
+
     if isinstance(handlers, str):
         handlers = [handlers]
 
@@ -203,19 +253,38 @@ def add_logger(
 
 
 def get_formatter(config, formatter):
+    '''Get Formatter.
+
+    Uses the config dictionary to create and return a formatter
+
+    :param dict config: Dictionary containing logging configuration directives
+    :param str formatter: Name of formatter. Uses data in config['formatters'][name] to configure formatter
+    :rtype: :py:class:`logging.Formatter`
+
+    '''
+
     config = copy.deepcopy(config)
     dict_configurator = logging.config.DictConfigurator({})
 
     formatter_dict = config.get('formatters', {}).get(formatter, {})
     try:
-        formatter_dict = dict_configurator.configure_formatter(formatter_dict)
-    except Exception:
+        formatter_ = dict_configurator.configure_formatter(formatter_dict)
+    except (StandardError) as e:
         raise ValueError('Unable to configure '
                          'formatter %r: %s' % (formatter, e))
-    return formatter_dict
+    return formatter_
 
 
 def get_formatters(config):
+    '''Get Formatters.
+
+    Iterates though config['formatters'] and updates the dictionary with
+    instances of formatters contained within.
+
+    :param dict config: Dictionary containing logging configuration directives
+    :rtype: dict
+
+    '''
     #config = copy.deepcopy(config)
     dict_configurator = logging.config.DictConfigurator({})
 
@@ -224,13 +293,24 @@ def get_formatters(config):
         try:
             formatters[name] = dict_configurator.configure_formatter(
                 formatters[name])
-        except Exception:
+        except (StandardError) as e:
             raise ValueError('Unable to configure '
                              'formatter %r: %s' % (name, e))
     return formatters
 
 
 def get_handler(config, handler, **args):
+    '''Get Handler.
+
+    Uses the config dictionary to create and return a handler
+
+    :param dict config: Dictionary containing logging configuration directives
+    :param str handler: Name of handler. Uses data in config['handlers'][name] to configure handler
+    :param args: Additional configuration arguments used to override data within config
+    :rtype: :py:class:`logging.handler`
+
+    '''
+
     config = copy.deepcopy(config)
     dict_configurator = logging.config.DictConfigurator({})
     dict_configurator.config = config
@@ -248,7 +328,7 @@ def get_handler(config, handler, **args):
         result = dict_configurator.configure_handler(handler_dict)
         result.name = handler
         handler_dict = result
-    except Exception as e:
+    except (StandardError) as e:
         if 'target not configured yet' in str(e):
             deferred = True
         else:
@@ -261,7 +341,7 @@ def get_handler(config, handler, **args):
             result = dict_configurator.configure_handler(handler_dict)
             result.name = handler
             handler_dict = result
-        except Exception as e:
+        except (StandardError) as e:
             raise ValueError('Unable to configure handler '
                              '%r: %s' % (handler, e))
 
@@ -270,6 +350,18 @@ def get_handler(config, handler, **args):
 
 
 def get_handlers(config, handlers=None, **args):
+    '''Get Handlers.
+
+    Iterates though config['handlers'] and creates a list of logging.handlers instances
+
+    :param dict config: Dictionary containing logging configuration directives
+    :param list handlers: List if handlers (str) to include.
+    :param args: Additional configuration arguments used to override data within config
+    :returns: list of :py:class:`logging.handlers`
+    :rtype: list
+
+    '''
+
     if handlers is None:
         handlers = config.get('handlers', {}).keys()
 
@@ -282,8 +374,7 @@ def get_handlers(config, handlers=None, **args):
 
 def ansi_text(text, color=None, bold=False, faint=False,
               underline=False, inverse=False, strike_through=False):
-    '''
-    Wrap text in ANSI escape codes.
+    '''Wrap text in ANSI escape codes.
 
     :param str text: Text string to wrap
     :param str color: Valid colors are ``black``, ``red``, ``green``,
@@ -295,6 +386,7 @@ def ansi_text(text, color=None, bold=False, faint=False,
     :param boolean strike_through: Strike-through font
     :returns: wrapped ANSI escaped text
     :rtype: str
+
     '''
 
     code_map = collections.OrderedDict([('bold', 1),
@@ -320,7 +412,12 @@ def ansi_text(text, color=None, bold=False, faint=False,
 
 
 def lower(dictionary):
-    '''
+    '''Converts all dictionary keys to lowercase.
+
+    :param dict dictionary: Dictionary to convert
+    :returns: Modified dictionary containing all lowercase keys
+    :rtype: dict
+
     '''
 
     for key, value in dictionary.iteritems():
@@ -334,18 +431,79 @@ def lower(dictionary):
 
 
 class ColorFormatter(logging.Formatter):
-    '''
+    '''Color logging.Formatter.
+
+    | Adds ASCI color codes to the logging output stream.  Each stream can be
+    | customized within the configuration file to allow different colors per
+    | field and optionally color field the same color as the ``levelname``.
+
+    Sample YAML configuration:
+
+    .. CODE:: yaml
+
+        formatters:
+          info:
+            (): logging.handlers.ColorFormatter
+            format: 'INFO: %(asctime)s%(levelname)9s: %(name)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d]: %(message)s'
+            colors:
+              levelname:
+                DEBUG:    {color: green}
+                INFO:     {color: magenta}
+                VERBOSE:  {color: blue}
+                WARNING:  {color: yellow}
+                ERROR:    {color: red}
+                CRITICAL: {color: red, bold: True}
+                message:  {}
+              asctime:     {color: yellow}
+              name:        {color: blue}
+              processname: {color: white}
+              module:      {color: cyan}
+              funcName:    {color: black, inverse: True}
+              lineno:      {color: red}
+            dynamic_labels: [lineno,]
+
+    | The ColorFormatter is defined within the ``formatters`` section of the
+    | configuration file within a formatter definition such as 'info' shown above.
+
+    | (): logging.handlers.ColorFormatter is required to allow logging configuration
+    | to load the module
+
+    | The fields that desire coloring are within the ``colors`` section.  Each field
+    | can contain a dictionary of color options.  The valid options are
+
+    | color: ``black``, ``red``, ``green``, ``yellow``, ``blue``, ``magenta``,
+    | ``cyan``, ``white``, or ``None``
+    | bold: True or ``False``
+    | faint: True or ``False``
+    | underline: True or ``False``
+    | inverse: True or ``False``
+    | strike_through: True or ``False``
+
+    | The ``levelname`` has a subsection that contains color codes for each logging
+    | level.  The ``levelname`` field will then be colored then based on the level
+    | logged which provides color indication per level.
+
+    | Any other field name contained within the ``levelname`` section or listed
+    | within the dynamic_labels list will be colored dynamically; that is they
+    | will be colored the same color as the ``levelname``  field.
+
     '''
 
     def __init__(self, fmt=None, datefmt=None, colors=None,
                  dynamic_labels=None):
+        '''Initialize the formatter with specified format strings.
+
+        Initialize the formatter either with the specified format
+        string, or a default as described above. Allow for specialized
+        date formatting with the optional datefmt argument (if omitted,
+        you get the ISO8601 format).
+
+        '''
 
         if not colors:
             self.colors = {}
-            self._colorized = True
         else:
             self.colors = lower(colors)
-            self._colorized = False
 
         self.dynamic_labels = ['levelname', ]
         if dynamic_labels:
@@ -354,7 +512,28 @@ class ColorFormatter(logging.Formatter):
         logging.Formatter.__init__(self, fmt=fmt, datefmt=datefmt)
         self._template = {'_master': copy.copy(self._fmt)}
 
+
     def format(self, record):
+        '''Format the specified record as colorized text.
+
+        The record's attribute dictionary is used as the operand to a
+        string formatting operation which yields the returned string.
+        Before formatting the dictionary, a couple of preparatory steps
+        are carried out. The message attribute of the record is computed
+        using LogRecord.getMessage(). If the formatting string uses the
+        time (as determined by a call to usesTime(), formatTime() is
+        called to format the event time. If there is exception information,
+        it is formatted using formatException() and appended to the message.
+
+        The format string is parsed and color codes are injected into it.  This
+        only happens one time per formatter level, otherwise the record is cached.
+
+        :param logging.LogRecord record: Logging log record
+        :returns: Modified log record
+        :rtype: :py:class:`logging.LogRecord`
+
+        '''
+
         # Copy the original record so we don't break other handlers.
         record = copy.copy(record)
 
@@ -366,58 +545,69 @@ class ColorFormatter(logging.Formatter):
                     logging.getLevelName(record.levelno).lower()]
 
             else:
-                # Colourize existing 'template' once to reduce calls in colorizing
-                # with the exception of fields that are dynamicly colored
-                self.colourize(record)
+                # Make sure message and asctime record fields are available
+                # to color parser
+                record.message = record.getMessage()
+                if self.usesTime():
+                    record.asctime = self.formatTime(record, self.datefmt)
+
+                # Colorize existing 'template' once to reduce calls in colorizing
+                # with the exception of fields that are dynamically colored
+                self.colorize(record)
                 self._template[
                     logging.getLevelName(record.levelno).lower()] = copy.copy(
                     self._fmt)
 
         return logging.Formatter.format(self, record)
 
-    def colourize(self, record):
+    def colorize(self, record):
+        '''Colorize.
+
+        The log record is used to iterate though the available log fields and is
+        compared against the color dictionary contained within the
+        formatters.<formatter name> section within the configuration file.
+
+        If a field exists in the colors section, then the format template
+        is searched for the field and color codes are applied directly to the
+        template.
+
+        :param logging.LogRecord record: Logging log record
+
         '''
-        '''
-        if not self._colorized and self.colors:
-            for label in record.__dict__:
 
-                if label not in self.colors.keys(
-                ) or label in self.dynamic_labels:
-                    # Add label to dynamic list if its color codes in levelname dict
-                    # This alloes coloring the label same color as level color
-                    if label in self.colors.get('levelname', {}).keys():
-                        self.dynamic_labels.append(label)
-                    else:
-                        continue
+        for label in record.__dict__:
 
-                search_re = r'^.*(?P<label>%[(]\s*?{0}\s*[)].*?[diouxXeEfFgGcrs%]).*'.format(
-                    label)
-                match = re.match(search_re, self._fmt)
+            if label not in self.colors.keys(
+            ) and label not in self.dynamic_labels:
+                # Add label to dynamic list if its color codes in levelname dict
+                # This allows coloring the label same color as level color
+                if label in self.colors.get('levelname', {}).keys():
+                    self.dynamic_labels.append(label)
 
-                if not match:
+                # Label is not colorized
+                else:
                     continue
 
-                value = getattr(record, label, None)
+            search_re = r'^.*(?P<label>%[(]\s*?{0}\s*[)].*?[diouxXeEfFgGcrs%]).*'.format(
+                label)
+            match = re.match(search_re, self._fmt)
 
-                if label in self.dynamic_labels:
-                    # colors = self.colors.get(label, {}).get(value.lower(), {})
-                    colors = self.colors.get('levelname', {}).get(
-                        logging.getLevelName(record.levelno).lower(), {})
-                else:
-                    colors = self.colors.get(label, {})
+            if not match:
+                continue
 
-                if label in ['levelname']:
-                    value = value.upper()
+            if label in self.dynamic_labels:
+                colors = self.colors.get('levelname', {}).get(
+                    logging.getLevelName(record.levelno).lower(), {})
+            else:
+                colors = self.colors.get(label, {})
 
-                if colors:
-                    text = match.group('label')
-                    text = ansi_text(text=text, **colors)
-                    replace_re = r'(%[(]\s*?{0}\s*[)].*?[diouxXeEfFgGcrs%])'.format(
-                        label)
-                    self._fmt = re.sub(replace_re, text, self._fmt)
-
-        self._colorized = True
+            if colors:
+                text = match.group('label')
+                text = ansi_text(text=text, **colors)
+                replace_re = r'(%[(]\s*?{0}\s*[)].*?[diouxXeEfFgGcrs%])'.format(
+                    label)
+                self._fmt = re.sub(replace_re, text, self._fmt)
 
 
-# enable Logging
+# Enable ColorFormatter handler
 logging.handlers.ColorFormatter = ColorFormatter

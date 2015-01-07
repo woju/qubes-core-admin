@@ -1,0 +1,138 @@
+{
+    "version": 1,
+    "LOGFILE": [
+        "/var/log/qubes/qubes.log"
+    ],
+    "disable_existing_loggers": false,
+    "formatters": {
+        "color": {
+            "()": "logging.handlers.ColorFormatter",
+            "format": "%(asctime)s%(levelname)9s: %(name)s:[%(processName)s %(module)s.%(funcName)s:%(lineno)d]: %(message)s",
+            "colors": {
+                "levelname": {
+                    "DEBUG": {
+                        "color": "green"
+                    },
+                    "INFO": {
+                        "color": "magenta"
+                    },
+                    "VERBOSE": {
+                        "color": "blue"
+                    },
+                    "WARNING": {
+                        "color": "yellow"
+                    },
+                    "ERROR": {
+                        "color": "red"
+                    },
+                    "CRITICAL": {
+                        "bold": true,
+                        "color": "red"
+                    },
+                    "message": {
+                    }
+                },
+                "asctime": {
+                    "color": "yellow"
+                },
+                "name": {
+                    "color": "blue"
+                },
+                "processname": {
+                    "color": "white"
+                },
+                "module": {
+                    "color": "cyan"
+                },
+                "funcName": {
+                    "color": "black",
+                    "inverse": true
+                },
+                "lineno": {
+                    "color": "red"
+                }
+            },
+            "dynamic_labels": [
+                "lineno"
+            ]
+        },
+        "console": {
+            "format": "%(message)s"
+        },
+        "simple": {
+            "format": "%(asctime)s - %(levelname)9s - %(message)s"
+        },
+        "info": {
+            "format": "%(asctime)s%(levelname)9s: %(module)s.%(funcName)s: %(message)s"
+        },
+        "debug": {
+            "format": "%(asctime)s%(levelname)9s: [%(processName)s %(module)s.%(funcName)s:%(lineno)d] %(name)s: %(message)s"
+        }
+    },
+    "handlers": {
+        "color_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "color",
+            "stream": "ext://sys.stdout"
+        },
+        "color_file_handler": {
+            "backupCount": 5,
+            "class": "logging.handlers.RotatingFileHandler",
+            "encoding": "utf8",
+            "filename": "/var/log/qubes/qubes.log",
+            "formatter": "color",
+            "maxBytes": 10485760
+        },
+        "info_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+            "stream": "ext://sys.stdout"
+        },
+        "info_file_handler": {
+            "backupCount": 5,
+            "class": "logging.handlers.RotatingFileHandler",
+            "encoding": "utf8",
+            "filename": "/var/log/qubes/qubes.log",
+            "formatter": "info",
+            "maxBytes": 10485760
+        },
+        "debug_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "debug",
+            "stream": "ext://sys.stdout"
+        },
+        "debug_file_handler": {
+            "backupCount": 5,
+            "class": "logging.handlers.RotatingFileHandler",
+            "encoding": "utf8",
+            "filename": "/var/log/qubes/qubes.log",
+            "formatter": "debug",
+            "maxBytes": 10485760
+        }
+    },
+    "loggers": {
+        "qubes": {
+            "handlers": [
+                "info_console",
+                "info_file_handler"
+            ],
+            "level": "INFO",
+            "propagate": false
+        },
+        "qubes.vm": {
+            "handlers": [
+                "debug_console",
+                "debug_file_handler"
+            ],
+            "level": "DEBUG",
+            "propagate": false
+        }
+    },
+    "root": {
+        "handlers": [
+            "color_console",
+            "info_file_handler"
+        ],
+        "level": "INFO"
+    }
+}
