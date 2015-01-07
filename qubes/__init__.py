@@ -39,7 +39,7 @@ elif os.name == 'nt':
     import win32file
     import pywintypes
 else:
-    raise RuntimeError, "Qubes works only on POSIX or WinNT systems"
+    raise RuntimeError("Qubes works only on POSIX or WinNT systems")
 
 import libvirt
 try:
@@ -58,8 +58,10 @@ class QubesException(Exception):
     '''Exception that can be shown to the user'''
     pass
 
+
 class VMMConnection(object):
     '''Connection to Virtual Machine Manager (libvirt)'''
+
     def __init__(self):
         self._libvirt_conn = None
         self._xs = None
@@ -74,7 +76,8 @@ class VMMConnection(object):
     @offline_mode.setter
     def offline_mode(self, value):
         if value and self._libvirt_conn is not None:
-            raise QubesException("Cannot change offline mode while already connected")
+            raise QubesException(
+                "Cannot change offline mode while already connected")
 
         self._offline_mode = value
 
@@ -95,7 +98,7 @@ class VMMConnection(object):
         if 'xen.lowlevel.xs' in sys.modules:
             self._xs = xen.lowlevel.xs.xs()
         self._libvirt_conn = libvirt.open(defaults['libvirt_uri'])
-        if self._libvirt_conn == None:
+        if self._libvirt_conn is None:
             raise QubesException("Failed connect to libvirt driver")
         libvirt.registerErrorHandler(self._libvirt_error_handler, None)
         atexit.register(self._libvirt_conn.close)
@@ -130,7 +133,7 @@ class QubesHost(object):
 
         (model, memory, cpus, mhz, nodes, socket, cores, threads) = \
             self._app.vmm.libvirt_conn.getInfo()
-        self._total_mem = long(memory)*1024
+        self._total_mem = long(memory) * 1024
         self._no_cpus = cpus
 
 #        print "QubesHost: total_mem  = {0}B".format (self.xen_total_mem)
@@ -153,7 +156,7 @@ class QubesHost(object):
         return long(ret)
 
     # TODO
-    def measure_cpu_usage(self, previous=None, previous_time = None,
+    def measure_cpu_usage(self, previous=None, previous_time=None,
             wait_time=1):
         """measure cpu usage for all domains at once"""
         if previous is None:
@@ -163,7 +166,7 @@ class QubesHost(object):
             for vm in info:
                 previous[vm['domid']] = {}
                 previous[vm['domid']]['cpu_time'] = (
-                        vm['cpu_time'] / vm['online_vcpus'])
+                    vm['cpu_time'] / vm['online_vcpus'])
                 previous[vm['domid']]['cpu_usage'] = 0
             time.sleep(wait_time)
 
@@ -173,12 +176,12 @@ class QubesHost(object):
         for vm in info:
             current[vm['domid']] = {}
             current[vm['domid']]['cpu_time'] = (
-                    vm['cpu_time'] / max(vm['online_vcpus'], 1))
+                vm['cpu_time'] / max(vm['online_vcpus'], 1))
             if vm['domid'] in previous.keys():
                 current[vm['domid']]['cpu_usage'] = (
                     float(current[vm['domid']]['cpu_time'] -
                         previous[vm['domid']]['cpu_time']) /
-                    long(1000**3) / (current_time-previous_time) * 100)
+                    long(1000 ** 3) / (current_time - previous_time) * 100)
                 if current[vm['domid']]['cpu_usage'] < 0:
                     # VM has been rebooted
                     current[vm['domid']]['cpu_usage'] = 0
@@ -234,7 +237,8 @@ class Label(object):
 
 
     def __xml__(self):
-        element = lxml.etree.Element('label', id='label-' + self.index, color=self.color)
+        element = lxml.etree.Element(
+            'label', id='label-' + self.index, color=self.color)
         element.text = self.name
         return element
 
@@ -264,7 +268,8 @@ class Label(object):
         .. deprecated:: 2.0
            use :py:meth:`PyQt4.QtGui.QIcon.fromTheme` and :py:attr:`icon_dispvm`
         '''
-        return os.path.join(system_path['qubes_icon_dir'], self.icon_dispvm) + ".png"
+        return os.path.join(
+            system_path['qubes_icon_dir'], self.icon_dispvm) + ".png"
 
 
 class VMCollection(object):
@@ -282,7 +287,8 @@ class VMCollection(object):
 
 
     def __repr__(self):
-        return '<{} {!r}>'.format(self.__class__.__name__, list(sorted(self.keys())))
+        return '<{} {!r}>'.format(
+            self.__class__.__name__, list(sorted(self.keys())))
 
 
     def items(self):
@@ -333,7 +339,8 @@ class VMCollection(object):
 
         # XXX this violates duck typing, should we do it?
         if not isinstance(value, qubes.vm.BaseVM):
-            raise TypeError('{} holds only BaseVM instances'.format(self.__class__.__name__))
+            raise TypeError(
+                '{} holds only BaseVM instances'.format(self.__class__.__name__))
 
         if not hasattr(value, 'qid'):
             value.qid = self.domains.get_new_unused_qid()
@@ -374,7 +381,8 @@ class VMCollection(object):
 
 
     def __contains__(self, key):
-        return any((key == vm or key == vm.qid or key == vm.name) for vm in self)
+        return any((key == vm or key == vm.qid or key == vm.name)
+                   for vm in self)
 
 
     def __len__(self):
@@ -417,7 +425,7 @@ class VMCollection(object):
 
 
     def get_new_unused_netid(self):
-        used_ids = set([vm.netid for vm in self]) # if vm.is_netvm()])
+        used_ids = set([vm.netid for vm in self])  # if vm.is_netvm()])
         for i in range(1, MAX_NETID):
             if i not in used_ids:
                 return i
@@ -463,7 +471,8 @@ class property(object):
             load_stage=2, order=0, save_via_ref=False, doc=None):
         self.__name__ = name
         self._setter = setter
-        self._saver = saver if saver is not None else (lambda self, prop, value: str(value))
+        self._saver = saver if saver is not None else (
+            lambda self, prop, value: str(value))
         self._type = type
         self._default = default
         self.order = order
@@ -490,7 +499,8 @@ class property(object):
         except AttributeError:
 #           sys.stderr.write('  __get__ except\n')
             if self._default is None:
-                raise AttributeError('property {!r} not set'.format(self.__name__))
+                raise AttributeError(
+                    'property {!r} not set'.format(self.__name__))
             elif isinstance(self._default, collections.Callable):
                 return self._default(instance)
             else:
@@ -510,7 +520,8 @@ class property(object):
             value = self._type(value)
 
         if has_oldvalue:
-            instance.fire_event_pre('property-pre-set:' + self.__name__, value, oldvalue)
+            instance.fire_event_pre(
+                'property-pre-set:' + self.__name__, value, oldvalue)
         else:
             instance.fire_event_pre('property-pre-set:' + self.__name__, value)
 
@@ -518,7 +529,8 @@ class property(object):
         instance._init_property(self, value)
 
         if has_oldvalue:
-            instance.fire_event('property-set:' + self.__name__, value, oldvalue)
+            instance.fire_event(
+                'property-set:' + self.__name__, value, oldvalue)
         else:
             instance.fire_event('property-set:' + self.__name__, value)
 
@@ -583,9 +595,12 @@ class property(object):
         '''
 
         lcvalue = value.lower()
-        if lcvalue in ('0', 'no', 'false'): return False
-        if lcvalue in ('1', 'yes', 'true'): return True
-        raise ValueError('Invalid literal for boolean property: {!r}'.format(value))
+        if lcvalue in ('0', 'no', 'false'):
+            return False
+        if lcvalue in ('1', 'yes', 'true'):
+            return True
+        raise ValueError(
+            'Invalid literal for boolean property: {!r}'.format(value))
 
 
 
@@ -641,7 +656,8 @@ class PropertyHolder(qubes.events.Emitter):
             props = set(prop for prop in props
                 if prop.load_stage == load_stage)
 #       sys.stderr.write('  props={!r}\n'.format(props))
-        return sorted(props, key=lambda prop: (prop.load_stage, prop.order, prop.__name__))
+        return sorted(
+            props, key=lambda prop: (prop.load_stage, prop.order, prop.__name__))
 
 
     def _init_property(self, prop, value):
@@ -665,7 +681,8 @@ class PropertyHolder(qubes.events.Emitter):
 #       sys.stderr.write('<{}>.load_properties(load_stage={}) xml={!r}\n'.format(hex(id(self)), load_stage, self.xml))
 
         self.events_enabled = False
-        all_names = set(prop.__name__ for prop in self.get_props_list(load_stage))
+        all_names = set(
+            prop.__name__ for prop in self.get_props_list(load_stage))
 #       sys.stderr.write('  all_names={!r}\n'.format(all_names))
         for node in self.xml.xpath('./properties/property'):
             name = node.get('name')
@@ -696,8 +713,9 @@ class PropertyHolder(qubes.events.Emitter):
 
         for prop in self.get_props_list():
             try:
-                value = getattr(self, (prop.__name__ if with_defaults else prop._attr_name))
-            except AttributeError, e:
+                value = getattr(
+                    self, (prop.__name__ if with_defaults else prop._attr_name))
+            except AttributeError as e:
 #               sys.stderr.write('AttributeError: {!s}\n'.format(e))
                 continue
 
@@ -836,7 +854,8 @@ class Qubes(PropertyHolder):
 
 
     def __init__(self, store='/var/lib/qubes/qubes.xml'):
-        self._extensions = set(ext(self) for ext in qubes.ext.Extension.register.values())
+        self._extensions = set(ext(self)
+                               for ext in qubes.ext.Extension.register.values())
 
         #: collection of all VMs managed by this Qubes instance
         self.domains = VMCollection()
@@ -857,7 +876,8 @@ class Qubes(PropertyHolder):
         except IOError:
             self._init()
 
-        super(Qubes, self).__init__(xml=lxml.etree.parse(self.qubes_store_file))
+        super(Qubes, self).__init__(
+            xml=lxml.etree.parse(self.qubes_store_file))
 
 
     def _open_store(self):
@@ -867,7 +887,7 @@ class Qubes(PropertyHolder):
         self._storefd = open(self._store, 'r+')
 
         if os.name == 'posix':
-            fcntl.lockf (self.qubes_store_file, fcntl.LOCK_EX)
+            fcntl.lockf(self.qubes_store_file, fcntl.LOCK_EX)
         elif os.name == 'nt':
             overlapped = pywintypes.OVERLAPPED()
             win32file.LockFileEx(win32file._get_osfhandle(self.qubes_store_file.fileno()),
@@ -913,7 +933,8 @@ class Qubes(PropertyHolder):
 
         if not hasattr(self, 'default_fw_netvm'):
             for vm in self.domains:
-                if hasattr(vm, 'provides_network') and not hasattr(vm, 'netvm'):
+                if hasattr(vm, 'provides_network') and not hasattr(
+                        vm, 'netvm'):
                     self.default_netvm = vm
                     break
 
@@ -984,7 +1005,7 @@ class Qubes(PropertyHolder):
         lxml.etree.ElementTree(self.__xml__()).write(
             self._storefd, encoding='utf-8', pretty_print=True)
         self._storefd.sync()
-        os.chmod(self._store, 0660)
+        os.chmod(self._store, 0o660)
         os.chown(self._store, -1, grp.getgrnam('qubes').gr_gid)
 
 
