@@ -53,7 +53,6 @@ import collections
 import functools
 import sys
 
-import dateutil.parser
 import lxml.etree
 
 import qubes
@@ -140,10 +139,10 @@ class BaseVM(qubes.PropertyHolder):
 
     :param app: Qubes application context
     :type app: :py:class:`qubes.Qubes`
-    :param xml: xml node from which to deserialize
+    :param xml: xml node from which to deserialise
     :type xml: :py:class:`lxml.etree._Element` or :py:obj:`None`
 
-    This class is responsible for serializing and deserializing machines and
+    This class is responsible for serializing and deserialising machines and
     provides basic framework. It contains no management logic. For that, see
     :py:class:`qubes.vm.qubesvm.QubesVM`.
     '''
@@ -253,16 +252,18 @@ class BaseVM(qubes.PropertyHolder):
 
 
     def __xml__(self):
-        element = lxml.etree.Element('domain', id='domain-' + str(self.qid))
+        element = lxml.etree.Element('domain')
+        element.set('id', 'domain-' + str(self.qid))
+        element.set('class', self.__class__.__name__)
 
-        element.append(self.save_properties())
+        element.append(self.xml_properties())
 
         services = lxml.etree.Element('services')
         for service in self.services:
             node = lxml.etree.Element('service')
             node.text = service
             if not self.services[service]:
-                node.set('enabled', 'False')
+                node.set('enabled', 'false')
             services.append(node)
         element.append(services)
 
@@ -302,7 +303,7 @@ class BaseVM(qubes.PropertyHolder):
     #
 
     @staticmethod
-    def xml_net_dev(ip, mac, backend):
+    def lvxml_net_dev(ip, mac, backend):
         '''Return ``<interface>`` node for libvirt xml.
 
         This was previously _format_net_dev
@@ -322,7 +323,7 @@ class BaseVM(qubes.PropertyHolder):
 
 
     @staticmethod
-    def xml_pci_dev(address):
+    def lvxml_pci_dev(address):
         '''Return ``<hostdev>`` node for libvirt xml.
 
         This was previously _format_pci_dev
@@ -364,7 +365,7 @@ class BaseVM(qubes.PropertyHolder):
         args['uuidnode'] = '<uuid>{!r}</uuid>'.format(self.uuid) \
             if hasattr(self, 'uuid') else ''
         args['vmdir'] = self.dir_path
-        args['pcidevs'] = ''.join(lxml.etree.tostring(self.xml_pci_dev(dev))
+        args['pcidevs'] = ''.join(lxml.etree.tostring(self.lvxml_pci_dev(dev))
             for dev in self.devices['pci'])
         args['maxmem'] = str(self.maxmem)
         args['vcpus'] = str(self.vcpus)
@@ -381,7 +382,7 @@ class BaseVM(qubes.PropertyHolder):
             args['dns1'] = self.netvm.gateway
             args['dns2'] = self.secondary_dns
             args['netmask'] = self.netmask
-            args['netdev'] = lxml.etree.tostring(self.xml_net_dev(self.ip, self.mac, self.netvm))
+            args['netdev'] = lxml.etree.tostring(self.lvxml_net_dev(self.ip, self.mac, self.netvm))
             args['disable_network1'] = '';
             args['disable_network2'] = '';
         else:
@@ -585,9 +586,13 @@ class BaseVM(qubes.PropertyHolder):
                 conf["rules"].append(rule)
 
         except EnvironmentError as err:
+            # problem accessing file, like ENOTFOUND, EPERM or sth
+            # return default config
             return conf
+
         except (xml.parsers.expat.ExpatError,
                 ValueError, LookupError) as err:
+            # config is invalid
             print("{0}: load error: {1}".format(
                 os.path.basename(sys.argv[0]), err))
             return None

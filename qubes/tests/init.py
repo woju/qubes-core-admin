@@ -1,5 +1,6 @@
 #!/usr/bin/python2 -O
 
+import os
 import sys
 import unittest
 
@@ -11,7 +12,7 @@ import qubes.vm
 
 import qubes.tests
 
-class TC_10_Label(qubes.tests.QubesTestCase):
+class TC_00_Label(qubes.tests.QubesTestCase):
     def test_000_constructor(self):
         label = qubes.Label(1, '#cc0000', 'red')
 
@@ -40,20 +41,127 @@ class TC_10_Label(qubes.tests.QubesTestCase):
         self.assertEqual(label.icon_dispvm, 'dispvm-red')
 
 
-class TestHolder(qubes.PropertyHolder):
+class TC_10_property(qubes.tests.QubesTestCase):
+    def setUp(self):
+        try:
+            class TestHolder(qubes.tests.TestEmitter, qubes.PropertyHolder):
+                testprop1 = qubes.property('testprop1')
+        except:
+            self.skipTest('TestHolder class definition failed')
+        self.holder = TestHolder(None)
+
+    def test_000_init(self):
+        pass
+
+    def test_001_hash(self):
+        hash(self.holder.__class__.testprop1)
+
+    def test_002_eq(self):
+        self.assertEquals(qubes.property('testprop2'),
+            qubes.property('testprop2'))
+
+    def test_010_set(self):
+        self.holder.testprop1 = 'testvalue'
+        self.assertEventFired(self.holder, 'property-pre-set:testprop1')
+        self.assertEventFired(self.holder, 'property-set:testprop1')
+
+    def test_020_get(self):
+        self.holder.testprop1 = 'testvalue'
+        self.assertEqual(self.holder.testprop1, 'testvalue')
+
+    def test_021_get_unset(self):
+        with self.assertRaises(AttributeError):
+            self.holder.testprop1
+
+    def test_022_get_default(self):
+        class TestHolder(qubes.tests.TestEmitter, qubes.PropertyHolder):
+            testprop1 = qubes.property('testprop1', default='defaultvalue')
+        holder = TestHolder(None)
+
+        self.assertEqual(holder.testprop1, 'defaultvalue')
+
+    def test_023_get_default_func(self):
+        class TestHolder(qubes.tests.TestEmitter, qubes.PropertyHolder):
+            testprop1 = qubes.property('testprop1', default=(lambda self: 'defaultvalue'))
+        holder = TestHolder(None)
+
+        self.assertEqual(holder.testprop1, 'defaultvalue')
+        holder.testprop1 = 'testvalue'
+        self.assertEqual(holder.testprop1, 'testvalue')
+
+    def test_030_set_setter(self):
+        def setter(self2, prop, value):
+            self.assertIs(self2, holder)
+            self.assertIs(prop, TestHolder.testprop1)
+            self.assertEquals(value, 'testvalue')
+            return 'settervalue'
+        class TestHolder(qubes.tests.TestEmitter, qubes.PropertyHolder):
+            testprop1 = qubes.property('testprop1', setter=setter)
+        holder = TestHolder(None)
+
+        holder.testprop1 = 'testvalue'
+        self.assertEqual(holder.testprop1, 'settervalue')
+
+    def test_031_set_type(self):
+        class TestHolder(qubes.tests.TestEmitter, qubes.PropertyHolder):
+            testprop1 = qubes.property('testprop1', type=int)
+        holder = TestHolder(None)
+
+        holder.testprop1 = '5'
+        self.assertEqual(holder.testprop1, 5)
+        self.assertNotEqual(holder.testprop1, '5')
+
+    def test_090_delete(self):
+        self.holder.testprop1 = 'testvalue'
+        try:
+            if self.holder.testprop1 != 'testvalue':
+                self.skipTest('testprop1 value is wrong')
+        except AttributeError:
+            self.skipTest('testprop1 value is wrong')
+
+        del self.holder.testprop1
+
+        with self.assertRaises(AttributeError):
+            self.holder.testprop
+
+    def test_090_delete_by_assign(self):
+        self.holder.testprop1 = 'testvalue'
+        try:
+            if self.holder.testprop1 != 'testvalue':
+                self.skipTest('testprop1 value is wrong')
+        except AttributeError:
+            self.skipTest('testprop1 value is wrong')
+
+        self.holder.testprop1 = qubes.property.DEFAULT
+
+        with self.assertRaises(AttributeError):
+            self.holder.testprop
+
+    def test_092_delete_default(self):
+        class TestHolder(qubes.tests.TestEmitter, qubes.PropertyHolder):
+            testprop1 = qubes.property('testprop1', default='defaultvalue')
+        holder = TestHolder(None)
+        holder.testprop1 = 'testvalue'
+
+        try:
+            if holder.testprop1 != 'testvalue':
+                self.skipTest('testprop1 value is wrong')
+        except AttributeError:
+            self.skipTest('testprop1 value is wrong')
+
+        del holder.testprop1
+
+        self.assertEqual(holder.testprop1, 'defaultvalue')
+
+
+class TestHolder(qubes.tests.TestEmitter, qubes.PropertyHolder):
     testprop1 = qubes.property('testprop1', order=0)
     testprop2 = qubes.property('testprop2', order=1, save_via_ref=True)
     testprop3 = qubes.property('testprop3', order=2, default='testdefault')
     testprop4 = qubes.property('testprop4', order=3)
 
-class TC_00_PropertyHolder(qubes.tests.QubesTestCase):
-    def assertXMLEqual(self, xml1, xml2):
-        self.assertEqual(xml1.tag, xml2.tag)
-        self.assertEqual(xml1.text, xml2.text)
-        self.assertEqual(sorted(xml1.keys()), sorted(xml2.keys()))
-        for key in xml1.keys():
-            self.assertEqual(xml1.get(key), xml2.get(key))
 
+class TC_20_PropertyHolder(qubes.tests.QubesTestCase):
     def setUp(self):
         xml = lxml.etree.XML('''
 <qubes version="3">
@@ -66,8 +174,14 @@ class TC_00_PropertyHolder(qubes.tests.QubesTestCase):
 
         self.holder = TestHolder(xml)
 
+
+    @unittest.expectedFailure
     def test_000_load_properties(self):
         self.holder.load_properties()
+
+        self.assertEventFired(self.holder, 'property-loaded')
+        self.assertEventNotFired(self.holder, 'property-set:testprop1')
+
         self.assertEquals(self.holder.testprop1, 'testvalue1')
         self.assertEquals(self.holder.testprop2, 'testref2')
         self.assertEquals(self.holder.testprop3, 'testdefault')
@@ -78,8 +192,8 @@ class TC_00_PropertyHolder(qubes.tests.QubesTestCase):
     def test_001_save_properties(self):
         self.holder.load_properties()
 
-        elements = self.holder.save_properties()
-        elements_with_defaults = self.holder.save_properties(with_defaults=True)
+        elements = self.holder.xml_properties()
+        elements_with_defaults = self.holder.xml_properties(with_defaults=True)
 
         self.assertEqual(len(elements), 2)
         self.assertEqual(len(elements_with_defaults), 3)
@@ -101,13 +215,13 @@ class TestVM(qubes.vm.BaseVM):
     name = qubes.property('name')
     netid = qid
 
-class TestApp(qubes.events.Emitter):
+class TestApp(qubes.tests.TestEmitter):
     pass
 
-class TC_11_VMCollection(qubes.tests.QubesTestCase):
+class TC_30_VMCollection(qubes.tests.QubesTestCase):
     def setUp(self):
-        # XXX passing None may be wrong in the future
-        self.vms = qubes.VMCollection(TestApp())
+        self.app = TestApp()
+        self.vms = qubes.VMCollection(self.app)
 
         self.testvm1 = TestVM(None, None, qid=1, name='testvm1')
         self.testvm2 = TestVM(None, None, qid=2, name='testvm2')
@@ -133,6 +247,8 @@ class TC_11_VMCollection(qubes.tests.QubesTestCase):
     def test_002_add(self):
         self.vms.add(self.testvm1)
         self.assertIn(1, self.vms)
+
+        self.assertEventFired(self.app, 'domain-added', args=[self.testvm1])
 
         with self.assertRaises(TypeError):
             self.vms.add(object())
@@ -184,6 +300,7 @@ class TC_11_VMCollection(qubes.tests.QubesTestCase):
         del self.vms['testvm2']
 
         self.assertItemsEqual(self.vms.vms(), [self.testvm1])
+        self.assertEventFired(self.app, 'domain-deleted', args=[self.testvm2])
 
     def test_100_get_new_unused_qid(self):
         self.vms.add(self.testvm1)
@@ -204,5 +321,10 @@ class TC_11_VMCollection(qubes.tests.QubesTestCase):
 #       pass
 
 
-class TC_20_Qubes(qubes.tests.QubesTestCase):
-    pass
+class TC_90_Qubes(qubes.tests.QubesTestCase):
+    @qubes.tests.skipUnlessGit
+    def test_900_example_xml_in_doc(self):
+        self.assertXMLIsValid(
+            lxml.etree.parse(open(
+                os.path.join(qubes.tests.in_git, 'doc/example.xml'), 'rb')),
+            'qubes.rng')

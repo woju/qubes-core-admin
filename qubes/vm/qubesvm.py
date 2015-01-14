@@ -111,20 +111,20 @@ class QubesVM(qubes.vm.BaseVM):
             'of the padlock.')
 
     # XXX swallowed uses_default_netvm
-    netvm = qubes.property('netvm', load_stage=4,
+    netvm = qubes.VMProperty('netvm', load_stage=4, allow_none=True,
         default=(lambda self: self.app.default_fw_netvm if self.provides_network
             else self.app.default_netvm),
-        doc='VM that provides network connection to this domain. '
-            'When :py:obj:`False`, machine is disconnected. '
-            'When :py:obj:`None` (or absent), domain uses default NetVM.')
+        doc='''VM that provides network connection to this domain. When
+            `None`, machine is disconnected. When absent, domain uses default
+            NetVM.''')
 
     provides_network = qubes.property('provides_network', type=bool,
-        doc=':py:obj:`True` if it is NetVM or ProxyVM, false otherwise')
+        doc='`True` if it is NetVM or ProxyVM, false otherwise.')
 
     qid = qubes.property('qid', type=int,
         setter=_setter_qid,
-        doc='Internal, persistent identificator of particular domain. '
-            'Note this is different from Xen domid.')
+        doc='''Internal, persistent identificator of particular domain. Note
+            this is different from Xen domid.''')
 
     name = qubes.property('name', type=str,
         doc='User-specified name of the domain.')
@@ -146,19 +146,20 @@ class QubesVM(qubes.vm.BaseVM):
 
     installed_by_rpm = qubes.property('installed_by_rpm', type=bool, default=False,
         setter=qubes.property.bool,
-        doc="If this domain's image was installed from package tracked by "
-            "package manager.")
+        doc='''If this domain's image was installed from package tracked by
+            package manager.''')
 
     memory = qubes.property('memory', type=int, default=qubes.config.defaults['memory'],
         doc='Memory currently available for this VM.')
 
     maxmem = qubes.property('maxmem', type=int, default=None,
-        doc='Maximum amount of memory available for this VM '
-            '(for the purpose of memory balancer).')
+        doc='''Maximum amount of memory available for this VM (for the purpose
+            of the memory balancer).''')
 
     internal = qubes.property('internal', type=bool, default=False,
         setter=qubes.property.bool,
-        doc="Internal VM (not shown in qubes-manager, doesn't create appmenus entries.")
+        doc='''Internal VM (not shown in qubes-manager, don't create appmenus
+            entries.''')
 
     # XXX what is that
     vcpus = qubes.property('vcpus', default=None,
@@ -201,12 +202,14 @@ class QubesVM(qubes.vm.BaseVM):
 #           return self._default_user
 
     qrexec_timeout = qubes.property('qrexec_timeout', type=int, default=60,
-        doc='Time in seconds after which qrexec connection attempt is deemed failed. '
-            'Operating system inside VM should be able to boot in this time.')
+        doc='''Time in seconds after which qrexec connection attempt is deemed
+            failed. Operating system inside VM should be able to boot in this
+            time.''')
 
     autostart = qubes.property('autostart', type=bool, default=False,
         setter=qubes.property.bool,
-        doc='Setting this to :py:obj:`True` means that VM should be autostarted on dom0 boot.')
+        doc='''Setting this to `True` means that VM should be autostarted on dom0
+            boot.''')
 
     # XXX I don't understand backups
     include_in_backups = qubes.property('include_in_backups', type=bool, default=True,
@@ -413,7 +416,7 @@ class QubesVM(qubes.vm.BaseVM):
             self.maxmem = total_mem_mb/2
 
         # Linux specific cap: max memory can't scale beyond 10.79*init_mem
-        # XXX what?! -woju
+        # see https://groups.google.com/forum/#!topic/qubes-devel/VRqkFj1IOtA
         if self.maxmem > self.memory * 10:
             self.maxmem = self.memory * 10
 
@@ -444,7 +447,6 @@ class QubesVM(qubes.vm.BaseVM):
     # event handlers
     #
 
-
     @qubes.events.handler('property-set:label')
     def on_property_set_label(self, event, name, new_label, old_label=None):
         if self.icon_path:
@@ -465,7 +467,7 @@ class QubesVM(qubes.vm.BaseVM):
         # we are changing to default netvm
         new_netvm = self.netvm
         if new_netvm == old_netvm: return
-        self.on_property_set_netvm(self, event, name, new_netvm, old_netvm)
+        self.fire_event('property-set:netvm', 'netvm', new_netvm, old_netvm)
 
 
     @qubes.events.handler('property-set:netvm')
@@ -509,6 +511,9 @@ class QubesVM(qubes.vm.BaseVM):
 
     @qubes.events.handler('property-set:name')
     def on_property_set_name(self, event, name, new_name, old_name=None):
+        # TODO not self.is_stopped() would be more appropriate
+        if self.is_running():
+            raise QubesException('Cannot change name of running domain')
         if self.libvirt_domain:
             self.libvirt_domain.undefine()
         self._libvirt_domain = None
@@ -551,6 +556,7 @@ class QubesVM(qubes.vm.BaseVM):
             return
 
         try:
+            # TODO: libvirt-ise
             subprocess.check_call(['sudo', system_path["qubes_pciback_cmd"], pci])
             subprocess.check_call(['sudo', 'xl', 'pci-attach', str(self.xid), pci])
         except Exception as e:
@@ -563,6 +569,7 @@ class QubesVM(qubes.vm.BaseVM):
         if not self.is_running():
             return
 
+        # TODO: libvirt-ise
         p = subprocess.Popen(['xl', 'pci-list', str(self.xid)],
                 stdout=subprocess.PIPE)
         result = p.communicate()
@@ -796,6 +803,8 @@ class QubesVM(qubes.vm.BaseVM):
             args += ["-t"]
         if os.isatty(sys.stderr.fileno()):
             args += ["-T"]
+
+        # TODO: QSB#13
         if passio:
             if os.name == 'nt':
                 # wait for qrexec-client to exit, otherwise client is not properly attached to console
@@ -848,6 +857,7 @@ class QubesVM(qubes.vm.BaseVM):
 
         source = 'dom0' if source is None else self.app.domains[source].name
 
+        # XXX TODO FIXME this looks bad...
         if input:
             return self.run("QUBESRPC %s %s" % (service, source),
                         localcmd="echo %s" % input, user=user, wait=True)
@@ -904,7 +914,7 @@ class QubesVM(qubes.vm.BaseVM):
         qrexec_args = [str(self.xid), self.name, self.default_user]
         if not self.debug:
             qrexec_args.insert(0, "-q")
-        qrexec_env = os.environ
+        qrexec_env = os.environ.copy()
         qrexec_env['QREXEC_STARTUP_TIMEOUT'] = str(self.qrexec_timeout)
         retcode = subprocess.call([system_path["qrexec_daemon_path"]] +
                                    qrexec_args, env=qrexec_env)
@@ -1048,7 +1058,7 @@ class QubesVM(qubes.vm.BaseVM):
             netvm.start()
 
         self.libvirt_domain.attachDevice(lxml.etree.ElementTree(
-            self.xml_net_dev(self.ip, self.mac, self.netvm)).tostring())
+            self.lvxml_net_dev(self.ip, self.mac, self.netvm)).tostring())
 
 
     def detach_network(self):
@@ -1062,7 +1072,7 @@ class QubesVM(qubes.vm.BaseVM):
 
 
         self.libvirt_domain.detachDevice(lxml.etree.ElementTree(
-            self.xml_net_dev(self.ip, self.mac, self.netvm)).tostring())
+            self.lvxml_net_dev(self.ip, self.mac, self.netvm)).tostring())
 
 
     #
