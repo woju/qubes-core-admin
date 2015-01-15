@@ -26,8 +26,7 @@
                         "color": "red"
                     },
                     "CRITICAL": {
-                        "bold": true,
-                        "color": "red"
+                        "color": ["red", "bold"]
                     },
                     "message": {
                     }
@@ -45,8 +44,7 @@
                     "color": "cyan"
                 },
                 "funcName": {
-                    "color": "black",
-                    "inverse": true
+                    "color": ["black", "inverse"]
                 },
                 "lineno": {
                     "color": "red"

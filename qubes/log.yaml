@@ -11,13 +11,13 @@ LEVELNAME: &LEVELNAME
   VERBOSE:  {color: blue}
   WARNING:  {color: yellow}
   ERROR:    {color: red}
-  CRITICAL: {color: red, bold: True}
+  CRITICAL: {color: [red, bold]}
 
 # Colors
 # black, red, green, yellow, blue, magenta, cyan, white
 #
 # Styles:
-# bold, faint, underline, inverse, strike_through,
+# bold, underline, inverse
 
 formatters:
   console:
@@ -37,7 +37,7 @@ formatters:
       name:        {color: blue}
       processname: {color: white}
       module:      {color: cyan}
-      funcName:    {color: black, inverse: True}
+      funcName:    {color: [black, inverse]}
       lineno:      {color: red}
     dynamic_labels: [lineno,]
 
