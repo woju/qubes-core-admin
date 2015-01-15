@@ -3,17 +3,19 @@
 import importlib
 import sys
 import unittest
+import argparse
+
+sys.path.insert(1, '../../')
 
 from qubes.utils import ANSIColor
 
 test_order = [
+    'qubes.tests.log',
     'qubes.tests.events',
     'qubes.tests.vm.init',
     'qubes.tests.vm.qubesvm',
     'qubes.tests.init'
 ]
-
-sys.path.insert(1, '../../')
 
 
 class ANSITestResult(unittest.TestResult):
@@ -182,16 +184,44 @@ def demo(verbosity=2):
     return runner.run(suite).wasSuccessful()
 
 
-def main():
+def main(argv):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--no-ansi',
+                        action='store_true',
+                        help='Disable ANSI Result Display'
+                        )
+    parser.add_argument('-m',
+                        '--modules',
+                        action='store',
+                        nargs='*',
+                        default=test_order,
+                        help='Only run provided modules'
+                        )
+    parser.add_argument('-s',
+                        '--skip',
+                        action='store',
+                        nargs='*',
+                        default=[],
+                        help='Skip provided modules'
+                        )
+
+    args = vars(parser.parse_args())
+    if args['skip']:
+        for skip in args['skip']:
+            if skip in args['modules']:
+                args['modules'].remove(skip)
+
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
-    for modname in test_order:
+    for modname in args['modules']:
         module = importlib.import_module(modname)
         suite.addTests(loader.loadTestsFromModule(module))
 
     runner = unittest.TextTestRunner(stream=sys.stdout, verbosity=2)
-    runner.resultclass = ANSITestResult
+    if not args['no_ansi']:
+        runner.resultclass = ANSITestResult
     return runner.run(suite).wasSuccessful()
 
 if __name__ == '__main__':
-    sys.exit(not main())
+    sys.exit(not main(sys.argv[1:]))
