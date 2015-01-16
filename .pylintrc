@@ -139,7 +139,7 @@ variable-rgx=[a-z_][a-z0-9_]{2,30}$
 inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,j,k,ex,Run,_,log,vm
+good-names=i,j,k,ex,Run,_,log,vm,xc,xs
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,baz,toto,tutu,tata
@@ -253,7 +253,7 @@ max-statements=100
 max-parents=7
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=7
+max-attributes=15
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2
@@ -266,5 +266,5 @@ max-public-methods=20
 
 # Exceptions that will emit a warning when being caught. Defaults to
 # "Exception"
-overgeneral-exceptions=Exception
+overgeneral-exceptions=Exception,EnvironmentError
 
