@@ -28,9 +28,8 @@ from __future__ import absolute_import
 
 import os
 import os.path
-import subprocess
-import sys
 import re
+import subprocess
 
 import lxml.etree
 
