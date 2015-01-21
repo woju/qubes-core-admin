@@ -808,12 +808,19 @@ class PropertyHolder(qubes.events.Emitter):
     Members:
     '''
 
-    def __init__(self, xml, *args, **kwargs):
-        super(PropertyHolder, self).__init__(*args)
+    def __init__(self, xml, **kwargs):
         self.xml = xml
 
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+        all_names = set(prop.__name__ for prop in self.property_list())
+        for key in list(kwargs.keys()):
+            if not key in all_names:
+                continue
+            setattr(self, key, kwargs.pop(key))
+
+        super(PropertyHolder, self).__init__(**kwargs)
 
 
     @classmethod
@@ -890,10 +897,9 @@ class PropertyHolder(qubes.events.Emitter):
 
         ``property-set`` events are not fired for each individual property.
 
-        :param lxml.etree._Element xml: XML node reference
+        :param int load_stage: Stage of loading.
         '''
 
-        self.events_enabled = False
         all_names = set(
             prop.__name__ for prop in self.property_list(load_stage))
         for node in self.xml.xpath('./properties/property'):
@@ -901,14 +907,9 @@ class PropertyHolder(qubes.events.Emitter):
             value = node.get('ref') or node.text
 
             if not name in all_names:
-                raise AttributeError(
-                    'No property {!r} found in {!r}'.format(
-                        name, self.__class__))
+                continue
 
             setattr(self, name, value)
-
-        self.events_enabled = True
-        self.fire_event('property-loaded')
 
 
     def xml_properties(self, with_defaults=False):
@@ -1203,8 +1204,10 @@ class Qubes(PropertyHolder):
 
         # stage 2: load VMs
         for node in self._xml.xpath('./domains/domain'):
-            cls = qubes.vm.load(node.get("class"))
-            vm = cls.fromxml(self, node)
+            # pylint: disable=no-member
+            cls = qubes.vm.BaseVM.register[node.get('class')]
+            vm = cls(self, node)
+            vm.load_properties(load_stage=2)
             self.domains.add(vm)
 
         if not 0 in self.domains:
@@ -1236,6 +1239,10 @@ class Qubes(PropertyHolder):
                         "dom0.".format(self.clockvm))
             else:
                 self.clockvm.services['ntpd'] = False
+
+        for vm in self.domains:
+            vm.events_enabled = True
+            vm.fire_event('domain-loaded')
 
 
     def _init(self):
