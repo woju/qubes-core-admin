@@ -177,6 +177,8 @@ class QubesHost(object):
     def __init__(self, app):
         self.app = app
         self._no_cpus = None
+        self._total_mem = None
+        self._physinfo = None
 
 
     def _fetch(self):
@@ -257,7 +259,7 @@ class QubesHost(object):
         current_time = time.time()
         current = {}
         try:
-            info = self._app.vmm.xc.domain_getinfo(0, qubes.config.max_qid)
+            info = self.app.vmm.xc.domain_getinfo(0, qubes.config.max_qid)
         except AttributeError:
             raise NotImplementedError(
                 'This function requires Xen hypervisor')
@@ -434,7 +436,7 @@ class VMCollection(object):
                 self.__class__.__name__))
 
         if not hasattr(value, 'qid'):
-            value.qid = self.domains.get_new_unused_qid()
+            value.qid = self.get_new_unused_qid()
 
         if value.qid in self:
             raise ValueError('This collection already holds VM that has '
@@ -500,7 +502,7 @@ class VMCollection(object):
                     continue
                 dependent_vms.add(vm.qid)
 #               if vm.is_netvm():
-                new_vms.append(vm.qid)
+                new_vms.add(vm.qid)
 
         return dependent_vms
 
@@ -995,7 +997,8 @@ class PropertyHolder(qubes.events.Emitter):
             if hard:
                 raise AssertionError(msg)
             else:
-                self.log(msg)
+                # pylint: disable=no-member
+                self.log.fatal(msg)
 
 
 import qubes.vm
@@ -1031,7 +1034,7 @@ class VMProperty(property):
     def __set__(self, instance, value):
         if value is None:
             if self.allow_none:
-                super(VMProperty, self).__set__(self, instance, vm)
+                super(VMProperty, self).__set__(self, instance, value)
                 return
             else:
                 raise ValueError(
@@ -1144,6 +1147,7 @@ class Qubes(PropertyHolder):
         self.host = QubesHost(self)
 
         self._store = store
+        self._storefd = None
         self.load()
 
 
@@ -1155,7 +1159,7 @@ class Qubes(PropertyHolder):
         :raises OSError: on failure
         :raises lxml.etree.XMLSyntaxError: on syntax error in qubes.xml
         '''
-        if hasattr(self, '_storefd'):
+        if self._storefd is not None:
             return
 
         try:
@@ -1199,12 +1203,12 @@ class Qubes(PropertyHolder):
             return
 
         # stage 1: load labels
-        for node in self._xml.xpath('./labels/label'):
+        for node in self.xml.xpath('./labels/label'):
             label = Label.fromxml(node)
-            self.labels[label.id] = label
+            self.labels[label.index] = label
 
         # stage 2: load VMs
-        for node in self._xml.xpath('./domains/domain'):
+        for node in self.xml.xpath('./domains/domain'):
             # pylint: disable=no-member
             cls = qubes.vm.BaseVM.register[node.get('class')]
             vm = cls(self, node)
@@ -1267,9 +1271,9 @@ class Qubes(PropertyHolder):
     def __del__(self):
         # intentionally do not call explicit unlock to not unlock the file
         # before all buffers are flushed
-        if hasattr(self, '_storefd'):
+        if self._storefd is not None:
             self._storefd.close()
-            del self._storefd
+            self._storefd = None
 
 
     def __xml__(self):
@@ -1322,7 +1326,7 @@ class Qubes(PropertyHolder):
     def on_domain_pre_deleted(self, event, vm):
         # pylint: disable=unused-argument
         if isinstance(vm, qubes.vm.templatevm.TemplateVM):
-            appvms = self.get_vms_based_on(vm)
+            appvms = self.domains.get_vms_based_on(vm)
             if appvms:
                 raise QubesException(
                     'Cannot remove template that has dependent AppVMs. '
