@@ -44,6 +44,7 @@ URL:		http://www.qubes-os.org
 
 BuildRequires:  ImageMagick
 BuildRequires:	systemd-units
+BuildRequires:	qubes-db-libs
 
 # for building documentation
 BuildRequires:	python-sphinx
