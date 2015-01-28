@@ -11,9 +11,13 @@ class AppVM(qubes.vm.qubesvm.QubesVM):
         ls_width=31,
         doc='Template, on which this AppVM is based.')
 
-    def __init__(self, D):
-        super(AppVM, self).__init__(D)
+    def __init__(self, *args, **kwargs):
+        super(AppVM, self).__init__(*args, **kwargs)
 
+
+    @qubes.events.handler('domain-loaded')
+    def _property_check(self, event):
         # Some additional checks for template based VM
         assert self.template
-        self.template.appvms.add(self)
+        #self.template.appvms.add(self)
+

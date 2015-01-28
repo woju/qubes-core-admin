@@ -149,11 +149,11 @@ class BaseVM(qubes.PropertyHolder):
             **kwargs):
         # pylint: disable=redefined-outer-name
 
-        self.events_enabled = False
-        super(BaseVM, self).__init__(xml, **kwargs)
-
         #: mother :py:class:`qubes.Qubes` object
         self.app = app
+
+        self.events_enabled = False
+        super(BaseVM, self).__init__(xml, **kwargs)
 
         #: dictionary of services that are run on this domain
         self.services = services or {}
@@ -352,8 +352,8 @@ class BaseVM(qubes.PropertyHolder):
         args['name'] = self.name
         if hasattr(self, 'kernels_dir'):
             args['kerneldir'] = self.kernels_dir
-        args['uuidnode'] = '<uuid>{!r}</uuid>'.format(self.uuid) \
-            if hasattr(self, 'uuid') else ''
+        args['uuidnode'] = '<uuid>{!s}</uuid>'.format(self.uuid) \
+            if self.uuid is not None else ''
         args['vmdir'] = self.dir_path
         args['pcidevs'] = ''.join(lxml.etree.tostring(self.lvxml_pci_dev(dev))
             for dev in self.devices['pci'])
@@ -396,6 +396,8 @@ class BaseVM(qubes.PropertyHolder):
                 self.log.info(
                     "Debug mode: adding 'earlyprintk=xen' to kernel opts")
                 args['kernelopts'] += ' earlyprintk=xen'
+
+        return args
 
 
     def create_config_file(self, file_path=None, prepare_dvm=False):

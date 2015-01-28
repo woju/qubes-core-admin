@@ -332,13 +332,13 @@ class Label(object):
 
     def __xml__(self):
         element = lxml.etree.Element(
-            'label', id='label-' + self.index, color=self.color)
+            'label', id='label-' + str(self.index), color=self.color)
         element.text = self.name
         return element
 
 
     def __repr__(self):
-        return '{}({!r}, {!r}, {!r}, dispvm={!r})'.format(
+        return '{}({!r}, {!r}, {!r})'.format(
             self.__class__.__name__,
             self.index,
             self.color,
@@ -639,22 +639,22 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
 
         if self._setter is not None:
             value = self._setter(instance, self, value)
-        if self._type is not None:
+        if self._type is not None and not isinstance(value, self._type):
             value = self._type(value)
 
         if has_oldvalue:
             instance.fire_event_pre(
-                'property-pre-set:' + self.__name__, value, oldvalue)
+                'property-pre-set:' + self.__name__, self.__name__, value, oldvalue)
         else:
-            instance.fire_event_pre('property-pre-set:' + self.__name__, value)
+            instance.fire_event_pre('property-pre-set:' + self.__name__, self.__name__, value)
 
         instance._property_init(self, value) # pylint: disable=protected-access
 
         if has_oldvalue:
             instance.fire_event(
-                'property-set:' + self.__name__, value, oldvalue)
+                'property-set:' + self.__name__, self.__name__, value, oldvalue)
         else:
-            instance.fire_event('property-set:' + self.__name__, value)
+            instance.fire_event('property-set:' + self.__name__, self.__name__, value)
 
 
     def __delete__(self, instance):
@@ -697,7 +697,7 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
     #
 
     class DontSave(Exception):
-        '''This exception may be raised from saver to sing that property should
+        '''This exception may be raised from saver to sign that property should
         not be saved.
         '''
         pass
@@ -811,6 +811,8 @@ class PropertyHolder(qubes.events.Emitter):
 
         super(PropertyHolder, self).__init__(**kwargs)
 
+        if self.xml is not None:
+            self.load_properties(load_stage=2)
 
     @classmethod
     def property_list(cls, load_stage=None):
@@ -829,6 +831,9 @@ class PropertyHolder(qubes.events.Emitter):
                 if prop.load_stage == load_stage)
         return sorted(props,
             key=lambda prop: (prop.load_stage, prop.order, prop.__name__))
+
+        if self.xml is not None:
+            self.load_properties(load_stage=2)
 
 
     def _property_init(self, prop, value):
@@ -855,7 +860,7 @@ class PropertyHolder(qubes.events.Emitter):
         '''
 
         # pylint: disable=protected-access
-        return hasattr(self, self.property_get_def(prop)._attr_name)
+        return not hasattr(self, self.property_get_def(prop)._attr_name)
 
 
     @classmethod
@@ -971,7 +976,7 @@ class PropertyHolder(qubes.events.Emitter):
             if :py:obj:`False`, log warning instead
         '''
 
-        if isinstance(qubes.property, prop):
+        if isinstance(prop, qubes.property):
             prop = prop.__name__
 
         try:
@@ -1017,11 +1022,13 @@ class VMProperty(property):
         super(VMProperty, self).__init__(name, **kwargs)
         self.vmclass = vmclass
         self.allow_none = allow_none
+        self._saver = lambda self, prop, value: value.name if value else 'None'
 
     def __set__(self, instance, value):
-        if value is None:
+        if value is None or value == 'None':
+            value = None
             if self.allow_none:
-                super(VMProperty, self).__set__(self, instance, value)
+                super(VMProperty, self).__set__(instance, value)
                 return
             else:
                 raise ValueError(
@@ -1038,7 +1045,7 @@ class VMProperty(property):
                     vm.__class__.__name__,
                     self.vmclass.__name__))
 
-        super(VMProperty, self).__set__(self, instance, vm)
+        super(VMProperty, self).__set__(instance, vm)
 
 
 import qubes.vm.qubesvm
@@ -1091,21 +1098,21 @@ class Qubes(PropertyHolder):
     '''
 
     default_netvm = VMProperty('default_netvm', load_stage=3,
-        default=None,
+        default=None, allow_none=True,
         doc='''Default NetVM for AppVMs. Initial state is `None`, which means
             that AppVMs are not connected to the Internet.''')
     default_fw_netvm = VMProperty('default_fw_netvm', load_stage=3,
-        default=None,
+        default=None, allow_none=True,
         doc='''Default NetVM for ProxyVMs. Initial state is `None`, which means
             that ProxyVMs (including FirewallVM) are not connected to the
             Internet.''')
     default_template = VMProperty('default_template', load_stage=3,
         vmclass=qubes.vm.templatevm.TemplateVM,
         doc='Default template for new AppVMs')
-    updatevm = VMProperty('updatevm', load_stage=3,
+    updatevm = VMProperty('updatevm', load_stage=3, allow_none=True,
         doc='''Which VM to use as `yum` proxy for updating AdminVM and
             TemplateVMs''')
-    clockvm = VMProperty('clockvm', load_stage=3,
+    clockvm = VMProperty('clockvm', load_stage=3, allow_none=True,
         doc='Which VM to use as NTP proxy for updating AdminVM')
     default_kernel = property('default_kernel', load_stage=3,
         doc='Which kernel to use when not overriden in VM')
@@ -1132,6 +1139,9 @@ class Qubes(PropertyHolder):
 
         #: Information about host system
         self.host = QubesHost(self)
+
+        # VMProperty calls to instance.app.domains
+        self.app = self
 
         self._store = store
         self._storefd = None
@@ -1199,7 +1209,6 @@ class Qubes(PropertyHolder):
             # pylint: disable=no-member
             cls = qubes.vm.BaseVM.register[node.get('class')]
             vm = cls(self, node)
-            vm.load_properties(load_stage=2)
             self.domains.add(vm)
 
         if not 0 in self.domains:
@@ -1223,7 +1232,7 @@ class Qubes(PropertyHolder):
 
         # Disable ntpd in ClockVM - to not conflict with ntpdate (both are
         # using 123/udp port)
-        if hasattr(self, 'clockvm'):
+        if hasattr(self, 'clockvm') and self.clockvm is not None:
             if 'ntpd' in self.clockvm.services:
                 if self.clockvm.services['ntpd']:
                     self.log.warning("VM set as clockvm ({!r}) has enabled "
@@ -1284,7 +1293,7 @@ class Qubes(PropertyHolder):
         self._storefd.truncate()
         lxml.etree.ElementTree(self.__xml__()).write(
             self._storefd, encoding='utf-8', pretty_print=True)
-        self._storefd.sync()
+        self._storefd.flush()
         os.chmod(self._store, 0o660)
         os.chown(self._store, -1, grp.getgrnam('qubes').gr_gid)
 
@@ -1296,7 +1305,7 @@ class Qubes(PropertyHolder):
         '''
 
         labels = lxml.etree.Element('labels')
-        for label in self.labels:
+        for label in self.labels.values():
             labels.append(label.__xml__())
         return labels
 
@@ -1339,6 +1348,8 @@ class Qubes(PropertyHolder):
     @qubes.events.handler('property-pre-set:clockvm')
     def on_property_pre_set_clockvm(self, event, name, newvalue, oldvalue=None):
         # pylint: disable=unused-argument,no-self-use
+        if newvalue is None:
+            return
         if 'ntpd' in newvalue.services:
             if newvalue.services['ntpd']:
                 raise QubesException('Cannot set {!r} as {!r} property since '

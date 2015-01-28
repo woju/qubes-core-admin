@@ -118,6 +118,7 @@ class Column(object):
         if ret is None:
             return None
 
+        sys.stderr.write("{}, {}\n".format(type(ret), self._fmt))
         if self._fmt is not None:
             return self._fmt.format(ret)
 
@@ -193,12 +194,16 @@ class PropertyColumn(Column):
         except AttributeError:
             return None
 
+        if isinstance(value, (qubes.vm.BaseVM, qubes.Label)):
+            value = value.name
+
+        if isinstance(value, (qubes.vm.BaseVM, qubes.Label)):
+            value = value.name
+
         if not hasattr(self.holder, 'ls_fmt') or self.holder.ls_fmt is None:
             return value
 
-        return self.holder.ls_fmt.format(
-            getattr(vm, self.holder.__name__)).ljust(
-            self.ls_width)
+        return self.holder.ls_fmt.format(value).ljust(self.ls_width)
 
 
     def __repr__(self):
@@ -599,7 +604,7 @@ def get_parser():
         help='Qubes store file')
 
     parser.set_defaults(
-        qubesxml=os.path.join(qubes.config.system_path['qubes_base_dir'],
+        xml=os.path.join(qubes.config.system_path['qubes_base_dir'],
             qubes.config.system_path['qubes_store_filename']),
         format='simple')
 

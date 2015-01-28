@@ -98,8 +98,9 @@ class Emitter(object):
     __metaclass__ = EmitterMeta
 
     def __init__(self, *args, **kwargs):
-        super(Emitter, self).__init__(*args, **kwargs)
-        self.events_enabled = True
+        super(Emitter, self).__init__()
+        if not hasattr(self, 'events_enabled'):
+            self.events_enabled = True
 
 
     @classmethod

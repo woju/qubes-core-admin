@@ -24,6 +24,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+from __future__ import absolute_import
+
 import datetime
 import lxml.etree
 import os
@@ -38,7 +40,7 @@ import libvirt
 
 import qubes
 import qubes.config
-#import qubes.qdb
+import qubes.qdb
 #import qubes.qmemman
 #import qubes.qmemman_algo
 import qubes.storage
@@ -57,6 +59,7 @@ except ImportError:
 
 def _setter_qid(self, prop, value):
     # pylint: disable=unused-argument
+    value = int(value)
     if not 0 <= value <= qubes.config.max_qid:
         raise ValueError(
             '{} value must be between 0 and qubes.config.max_qid'.format(
@@ -90,16 +93,29 @@ def _setter_name(self, prop, value):
 def _setter_kernel(self, prop, value):
     # pylint: disable=unused-argument
     if not os.path.exists(os.path.join(
+            qubes.config.system_path['qubes_base_dir'],
             qubes.config.system_path['qubes_kernels_base_dir'], value)):
         raise qubes.QubesException('Kernel {!r} not installed'.format(value))
     for filename in ('vmlinuz', 'modules.img'):
         if not os.path.exists(os.path.join(
+                qubes.config.system_path['qubes_base_dir'],
                 qubes.config.system_path['qubes_kernels_base_dir'],
                     value, filename)):
             raise qubes.QubesException(
                 'Kernel {!r} not properly installed: missing {!r} file'.format(
                     value, filename))
     return value
+
+def _setter_label(self, prop, value):
+    if isinstance(value, qubes.Label):
+        return value
+    elif value.startswith('label-'):
+        return self.app.labels[int(value.rsplit('-', 1)[1])]
+    else:
+        for label in self.app.labels.values():
+            if label.name == value:
+                return label
+        raise ValueError('Unknown label {}'.format(value))
 
 
 def _default_conf_file(self, name=None):
@@ -114,8 +130,8 @@ class QubesVM(qubes.vm.BaseVM):
     #
 
     label = qubes.property('label',
-        setter=(lambda self, prop, value: self.app.labels[
-            int(value.rsplit('-', 1)[1])]),
+        setter=_setter_label,
+        saver=(lambda self, prop, value: "label-{}".format(value.index)),
         ls_width=14,
         doc='''Colourful label assigned to VM. This is where the colour of the
             padlock is set.''')
@@ -128,10 +144,6 @@ class QubesVM(qubes.vm.BaseVM):
         doc='''VM that provides network connection to this domain. When
             `None`, machine is disconnected. When absent, domain uses default
             NetVM.''')
-
-    provides_network = qubes.property('provides_network',
-        type=bool, setter=qubes.property.bool,
-        doc='`True` if it is NetVM or ProxyVM, false otherwise.')
 
     qid = qubes.property('qid', type=int,
         setter=_setter_qid,
@@ -180,8 +192,9 @@ class QubesVM(qubes.vm.BaseVM):
         doc='''Internal VM (not shown in qubes-manager, don't create appmenus
             entries.''')
 
-    # XXX what is that
-    vcpus = qubes.property('vcpus', default=None,
+    # FIXME: self.app.host could not exists - only self.app.vmm required by API
+    vcpus = qubes.property('vcpus',
+        default=(lambda self: self.app.host.no_cpus),
         ls_width=2,
         doc='FIXME')
 
@@ -215,7 +228,8 @@ class QubesVM(qubes.vm.BaseVM):
     # XXX shouldn't this go to standalone VM and TemplateVM, and leave here
     #     only plain property?
     default_user = qubes.property('default_user', type=str,
-        default=(lambda self: self.template.default_user),
+        default=(lambda self: self.template.default_user
+            if hasattr(self, 'template') else 'user'),
         ls_width=12,
         doc='FIXME')
 
@@ -353,7 +367,7 @@ class QubesVM(qubes.vm.BaseVM):
         If :py:attr:`self.kernel` is :py:obj:`None`, the this points inside
         :py:attr:`self.dir_path`
         '''
-        return os.path.join(
+        return os.path.join(qubes.config.system_path['qubes_base_dir'],
             qubes.config.system_path['qubes_kernels_base_dir'], self.kernel) \
             if self.kernel is not None \
         else os.path.join(self.dir_path,
@@ -378,15 +392,19 @@ class QubesVM(qubes.vm.BaseVM):
         return self.dir_path and os.path.join(self.dir_path, "icon.png")
 
 
+    @property
+    def type(self):
+        return self.__class__.__name__
+
     # XXX I don't know what to do with these; probably should be isinstance(...)
-#   def is_template(self):
-#       return False
-#
-#   def is_appvm(self):
-#       return False
-#
-#   def is_proxyvm(self):
-#       return False
+    def is_template(self):
+        return isinstance(self, qubes.vm.templatevm.TemplateVM)
+
+    def is_appvm(self):
+        return isinstance(self, qubes.vm.appvm.AppVM)
+ 
+    def is_proxyvm(self):
+        return isinstance(self, qubes.vm.proxyvm.ProxyVM)
 #
 #   def is_disposablevm(self):
 #       return False
@@ -394,12 +412,17 @@ class QubesVM(qubes.vm.BaseVM):
 
     # network-related
 
+    @property
+    def provides_network(self):
+        '''`True` if it is NetVM or ProxyVM, false otherwise.'''
+        return False
+
     @qubes.tools.qvm_ls.column(width=15)
     @property
     def ip(self):
         '''IP address of this domain.'''
         if self.netvm is not None:
-            return self.netvm.get_ip_for_vm(self.qid)
+            return self.netvm.get_ip_for_vm(self)
         else:
             return None
 
