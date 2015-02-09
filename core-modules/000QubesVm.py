@@ -43,6 +43,7 @@ from qubes.qubes import register_qubes_vm_class
 from qubes.qubes import QubesVmCollection,QubesException,QubesHost,QubesVmLabels
 from qubes.qubes import defaults,system_path,vm_files,qubes_max_qid
 from qubes.qmemman_client import QMemmanClient
+from qubes.storage.xen import QubesXenVmStorage
 
 import qubes.qubesutils
 
@@ -314,7 +315,7 @@ class QubesVm(object):
             self.services['meminfo-writer'] = False
 
         # Initialize VM image storage class
-        self.storage = defaults["storage_class"](self)
+        self.storage = QubesXenVmStorage(self)
         if hasattr(self, 'kernels_dir'):
             self.storage.modules_img = os.path.join(self.kernels_dir,
                     "modules.img")
