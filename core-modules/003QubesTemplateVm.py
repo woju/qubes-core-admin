@@ -45,15 +45,6 @@ class QubesTemplateVm(QubesVm):
                 os.path.join(system_path["qubes_templates_dir"], self.name)
         attrs_config['label']['default'] = defaults["template_label"]
 
-        # New attributes
-
-        # Image for template changes
-        attrs_config['rootcow_img'] = {
-            'func': lambda x: os.path.join(self.dir_path, vm_files["rootcow_img"]) }
-        # Clean image for root-cow and swap (AppVM side)
-        attrs_config['clean_volatile_img'] = {
-            'func': lambda x: os.path.join(self.dir_path, vm_files["clean_volatile_img"]) }
-
         return attrs_config
 
     def __init__(self, **kwargs):
@@ -76,8 +67,8 @@ class QubesTemplateVm(QubesVm):
     def get_firewall_defaults(self):
         return { "rules": list(), "allow": False, "allowDns": False, "allowIcmp": False, "allowYumProxy": True }
 
-    def get_rootdev(self, source_template=None):
-        return "'script:origin:{dir}/root.img:{dir}/root-cow.img,xvda,w',".format(dir=self.dir_path)
+    def rootcow_img(self):
+        return self.storage.rootcow_img
 
     def clone_disk_files(self, src_vm, verbose):
         if dry_run:
@@ -85,65 +76,8 @@ class QubesTemplateVm(QubesVm):
 
         super(QubesTemplateVm, self).clone_disk_files(src_vm=src_vm, verbose=verbose)
 
-        if verbose:
-            print >> sys.stderr, "--> Copying the template's clean volatile image:\n{0} ==>\n{1}".\
-                    format(src_vm.clean_volatile_img, self.clean_volatile_img)
-        # We prefer to use Linux's cp, because it nicely handles sparse files
-        retcode = subprocess.call (["cp", src_vm.clean_volatile_img, self.clean_volatile_img])
-        if retcode != 0:
-            raise IOError ("Error while copying {0} to {1}".\
-                           format(src_vm.clean_volatile_img, self.clean_volatile_img))
-        if verbose:
-            print >> sys.stderr, "--> Copying the template's volatile image:\n{0} ==>\n{1}".\
-                    format(self.clean_volatile_img, self.volatile_img)
-        # We prefer to use Linux's cp, because it nicely handles sparse files
-        retcode = subprocess.call (["cp", self.clean_volatile_img, self.volatile_img])
-        if retcode != 0:
-            raise IOError ("Error while copying {0} to {1}".\
-                           format(self.clean_img, self.volatile_img))
-
         # Create root-cow.img
         self.commit_changes(verbose=verbose)
-
-    def post_rename(self, old_name):
-        super(QubesTemplateVm, self).post_rename(old_name)
-
-        old_dirpath = os.path.join(os.path.dirname(self.dir_path), old_name)
-        self.clean_volatile_img = self.clean_volatile_img.replace(old_dirpath, self.dir_path)
-        self.rootcow_img = self.rootcow_img.replace(old_dirpath, self.dir_path)
-
-    def verify_files(self):
-        if dry_run:
-            return
-
-        super(QubesTemplateVm, self).verify_files()
-
-        if not os.path.exists (self.volatile_img):
-            raise QubesException (
-                "VM volatile image file doesn't exist: {0}".\
-                format(self.volatile_img))
-
-        if not os.path.exists (self.clean_volatile_img):
-            raise QubesException (
-                "Clean VM volatile image file doesn't exist: {0}".\
-                format(self.clean_volatile_img))
-
-        return True
-
-    def reset_volatile_storage(self, verbose = False):
-        assert not self.is_running(), "Attempt to clean volatile image of running Template VM!"
-
-        if verbose:
-            print >> sys.stderr, "--> Cleaning volatile image: {0}...".format (self.volatile_img)
-        if dry_run:
-            return
-        if os.path.exists (self.volatile_img):
-           os.remove (self.volatile_img)
-
-        retcode = subprocess.call (["tar", "xf", self.clean_volatile_img, "-C", self.dir_path])
-        if retcode != 0:
-            raise IOError ("Error while unpacking {0} to {1}".\
-                           format(self.template.clean_volatile_img, self.volatile_img))
 
     def commit_changes (self, verbose = False):
 
@@ -154,14 +88,6 @@ class QubesTemplateVm(QubesVm):
 
         if dry_run:
             return
-        if os.path.exists (self.rootcow_img):
-           os.rename (self.rootcow_img, self.rootcow_img + '.old')
-
-        f_cow = open (self.rootcow_img, "w")
-        f_root = open (self.root_img, "r")
-        f_root.seek(0, os.SEEK_END)
-        f_cow.truncate (f_root.tell()) # make empty sparse file of the same size as root.img
-        f_cow.close ()
-        f_root.close()
+        self.storage.commit_template_changes()
 
 register_qubes_vm_class(QubesTemplateVm)

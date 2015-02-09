@@ -107,6 +107,7 @@ ln -s block-snapshot $RPM_BUILD_ROOT/etc/xen/scripts/block-origin
 
 mkdir -p $RPM_BUILD_ROOT%{python_sitearch}/qubes
 cp core/qubes.py $RPM_BUILD_ROOT%{python_sitearch}/qubes
+cp -r core/storage $RPM_BUILD_ROOT%{python_sitearch}/qubes
 cp core/qubes.py[co] $RPM_BUILD_ROOT%{python_sitearch}/qubes
 cp core/qubesutils.py $RPM_BUILD_ROOT%{python_sitearch}/qubes
 cp core/qubesutils.py[co] $RPM_BUILD_ROOT%{python_sitearch}/qubes
@@ -287,6 +288,9 @@ fi
 %{python_sitearch}/qubes/backup.py
 %{python_sitearch}/qubes/backup.pyc
 %{python_sitearch}/qubes/backup.pyo
+%{python_sitearch}/qubes/storage/*.py
+%{python_sitearch}/qubes/storage/*.pyc
+%{python_sitearch}/qubes/storage/*.pyo
 %{python_sitearch}/qubes/qmemman*.py*
 %{python_sitearch}/qubes/modules/0*.py*
 %{python_sitearch}/qubes/modules/__init__.py*
