@@ -1101,7 +1101,8 @@ class QubesVm(object):
         if source_template is None:
             source_template = self.template
         assert source_template is not None
-
+        self.set_storage_type(source_template.storage_type)
+        self.storage = self._getStorage()
         if dry_run:
             return
 

@@ -72,6 +72,31 @@ class QubesLvmVmStorage(QubesXenVmStorage):
                 createEmptyImg(self.root_img, self.root_img_size)
             
 
+    def verify_files(self):
+        self.log.debug("Verifying files")
+        if not os.path.exists (self.vmdir):
+            self.log.error("VM directory doesn't exist: %s" % self.vmdir)
+            raise QubesException (
+                "VM directory doesn't exist: {0}".\
+                format(self.vmdir))
+
+        if self.root_img and not os.path.exists (self.root_img) and self.vm.is_updateable():
+            self.log.error("VM root image doesn't exist: %s" % self.root_img)
+            raise QubesException (
+                "VM root image file doesn't exist: {0}".\
+                format(self.root_img))
+
+        if self.private_img and not os.path.exists (self.private_img):
+            self.log.error("VM private image doesn't exist: %s" % self.private_img)
+            raise QubesException (
+                "VM private image file doesn't exist: {0}".\
+                format(self.private_img))
+        if self.modules_img is not None:
+            if not os.path.exists(self.modules_img):
+                self.log.error("VM modules image doesn't exist: %s" % self.modules_img)
+                raise QubesException (
+                        "VM kernel modules image does not exists: {0}".\
+                                format(self.modules_img))
 
 
     def rename(self, old_name, new_name):
