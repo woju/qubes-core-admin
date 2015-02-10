@@ -66,13 +66,26 @@ if __name__ == "__main__":
         log.error(" %s VM does not exists" % vm_name)
         sys.exit(1)
         
-    log.debug("Migrating %s %s bytes" % (vm.private_img, vm.storage.private_img_size))
+    log.info("Migrating %s %s bytes" % (vm.private_img, vm.storage.private_img_size))
     with NewLvmVolume(lvm.LVM + vm.name+"-private", vm.storage.private_img_size) as new_private:
         with Mount(vm.private_img) as old:
             with Mount(new_private) as new:
-                cmd = ["sudo", "rsync", "-av", old+"/", new]
+                cmd = ["sudo", "rsync", "-a", old+"/", new]
                 log.debug(' '.join(cmd))
                 retcode = subprocess.call(cmd)
                 if retcode != 0:
                     raise IOError("Could not rsync %s/ to %s" % (old,new))
+                if vm.is_updateable():
+                    log.info("Migrating %s %s bytes" % (vm.root_img, vm.storage.root_img_size))
+                    with NewLvmVolume(lvm.LVM + vm.name+"-root",
+                            vm.storage.root_img_size) as new_root:
+                        with Mount(vm.root_img) as old:
+                            with Mount(new_root) as new:
+                                cmd = ["sudo", "rsync", "-a", old+"/", new]
+                                log.debug(' '.join(cmd))
+                                retcode = subprocess.call(cmd)
+                                if retcode != 0:
+                                    raise IOError("Could not rsync %s/ to %s" % (old,new))
+                vm.set_storage_type("lvm")
+                col.save()
 
