@@ -25,6 +25,7 @@ import logging
 import subprocess
 import os
 import shutil
+import sys
 
 from qubes.storage.xen import QubesXenVmStorage
 
@@ -66,6 +67,28 @@ class QubesLvmVmStorage(QubesXenVmStorage):
         removeLVM(self.private_img)
         shutil.rmtree(self.vmdir)
 
+    def clone_disk_files(self, src_vm, verbose):
+        if verbose:
+            self.log.info("--> Creating directory: {0}".format(self.vmdir))
+        os.mkdir (self.vmdir)
+
+        if src_vm.private_img is not None and self.private_img is not None:
+            if verbose:
+                print >> sys.stderr, "--> Snapshotting the private image:\n{0} ==>\n{1}".\
+                        format(src_vm.private_img, self.private_img)
+                snapshotLVM(src_vm.private_img, self.private_img)
+
+        if src_vm.updateable and src_vm.root_img is not None and self.root_img is not None:
+            if verbose:
+                print >> sys.stderr, "--> Copying the root image:\n{0} ==>\n{1}".\
+                        format(src_vm.root_img, self.root_img)
+            self._copy_file(src_vm.root_img, self.root_img)
+
+            # TODO: modules?
+
+        clean_volatile_img = src_vm.dir_path + "/clean-volatile.img.tar"
+        if os.path.exists(clean_volatile_img):
+            self._copy_file(clean_volatile_img, self.vm.dir_path + "/clean-volatile.img.tar")
 
 def removeLVM(img):
     retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 

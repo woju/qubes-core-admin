@@ -100,6 +100,7 @@ class QubesVm(object):
             "qid": { "attr": "_qid", "order": 0 },
             "name": { "order": 1 },
             "dir_path": { "default": None, "order": 2 },
+            "storage_type": {"default": "file", "order":4, "attr":"_storage_type"},
             "conf_file": {
                 "func": lambda value: self.absolute_path(value, self.name +
                                                                  ".conf"),
@@ -180,12 +181,12 @@ class QubesVm(object):
 
         ### Mark attrs for XML inclusion
         # Simple string attrs
-        for prop in ['qid', 'name', 'dir_path', 'memory', 'maxmem', 'pcidevs', 'vcpus', 'internal',\
-            'uses_default_kernel', 'kernel', 'uses_default_kernelopts',\
-            'kernelopts', 'services', 'installed_by_rpm',\
-            'uses_default_netvm', 'include_in_backups', 'debug',\
-            'qrexec_timeout', 'autostart',
-            'backup_content', 'backup_size', 'backup_path' ]:
+        for prop in ['qid', 'name', 'dir_path', 'storage_type', 'memory', 'maxmem', 'pcidevs',
+        'vcpus', 'internal', 'uses_default_kernel', 'kernel',
+        'uses_default_kernelopts', 'kernelopts', 'services', 'installed_by_rpm',
+        'uses_default_netvm', 'include_in_backups', 'debug',
+        'qrexec_timeout', 'autostart', 'backup_content', 'backup_size',
+        'backup_path' ]:
             attrs[prop]['save'] = lambda prop=prop: str(getattr(self, prop))
         # Simple paths
         for prop in ['conf_file']:
@@ -272,8 +273,7 @@ class QubesVm(object):
             elif 'eval' in attr_config:
                 setattr(self, attr, eval(attr_config['eval']))
             else:
-                #print "setting %s to %s" % (attr, value)
-                setattr(self, attr, value)
+               setattr(self, attr, value)
 
         #Init private attrs
         self.__qid = self._qid
@@ -384,6 +384,13 @@ class QubesVm(object):
     @property
     def netvm(self):
         return self._netvm
+
+    @property
+    def storage_type(self):
+        return self._storage_type
+
+    def set_storage_type(self, type):
+        self._storage_type = type
 
     # Don't know how properly call setter from base class, so workaround it...
     @netvm.setter
@@ -1119,7 +1126,7 @@ class QubesVm(object):
             hook(self, verbose, source_template=source_template)
 
     def get_clone_attrs(self):
-        attrs = ['kernel', 'uses_default_kernel', 'netvm', 'uses_default_netvm', \
+        attrs = ['kernel', 'uses_default_kernel', 'netvm', 'uses_default_netvm', 'storage_type',\
             'memory', 'maxmem', 'kernelopts', 'uses_default_kernelopts', 'services', 'vcpus', \
             '_mac', 'pcidevs', 'include_in_backups', '_label', 'default_user']
 
@@ -1133,7 +1140,11 @@ class QubesVm(object):
         self._do_not_reset_firewall = True
         for prop in self.get_clone_attrs():
             try:
-                setattr(self, prop, getattr(src_vm, prop))
+                if prop == "storage_type":
+                    self.set_storage_type(getattr(src_vm, prop))
+                    self.storage = self._getStorage()
+                else:
+                    setattr(self, prop, getattr(src_vm, prop))
             except Exception as e:
                 if fail_on_error:
                     self._do_not_reset_firewall = False
@@ -1772,7 +1783,7 @@ class QubesVm(object):
 
 
     def _getStorage(self):
-            if self.is_appvm() and os.path.exists(LVM + self.name + "-private"):
+            if self.storage_type == 'lvm':
                 return QubesLvmVmStorage(self)
             else:
                 return QubesXenVmStorage(self)
