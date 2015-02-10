@@ -47,6 +47,7 @@ BuildRequires:	systemd-units
 Requires(post): systemd-units
 Requires(preun): systemd-units
 Requires(postun): systemd-units
+Requires:   rsync
 Requires:	python, xen-runtime, pciutils, python-inotify, python-daemon
 Requires:       qubes-core-dom0-linux >= 2.0.24
 Requires:       python-lxml

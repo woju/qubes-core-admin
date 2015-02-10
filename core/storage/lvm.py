@@ -30,7 +30,7 @@ from qubes.storage.xen import QubesXenVmStorage
 VG = 'qubes_dom0'
 LVM = '/dev/' + VG + '/'
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

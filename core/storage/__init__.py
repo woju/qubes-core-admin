@@ -34,7 +34,7 @@ from qubes.qubes import vm_files,system_path,defaults
 from qubes.qubes import QubesException
 import qubes.qubesutils
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 class QubesVmStorage(object):
     """

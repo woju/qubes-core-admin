@@ -1,0 +1,78 @@
+#!/usr/bin/python
+from qubes.qubes import QubesVmCollection
+from qubes.storage import lvm
+
+import logging
+import sys
+import os
+import string
+import random
+import subprocess
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("qvm-lvm")
+
+class Mount():
+    log = logging.getLogger(__name__)
+    def __init__(self, target):
+        self.target = target
+        log.info(target)
+
+    def __enter__(self):
+        options = ''
+        self.mountpoint = self. getRandomMountPoint()
+        self.execAsRoot("mkdir", ["-p", self.mountpoint])
+        if os.path.isfile(self.target):
+            log.info("Using loop mount")
+            self.execAsRoot("mount", ['-oloop', self.target, self.mountpoint])
+        else:
+            self.execAsRoot("mount", [ self.target, self.mountpoint])
+        return self.mountpoint
+
+    def __exit__(self, type, value, traceback):
+        self.execAsRoot("umount", [self.mountpoint])
+        self.execAsRoot("rmdir", [self.mountpoint])
+        return True
+
+    def execAsRoot(self, cmd, options):
+        self.log.info( ' '.join(["sudo", cmd] + options))
+        retcode = subprocess.call(["sudo", cmd] + options)
+        if retcode != 0:
+            raise IOError("Error while exectuing %s" % cmd)
+        
+    def getRandomMountPoint(self):
+        return '/mnt/%s' % ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits) for _ in range(5))
+
+class NewLvmVolume():
+    def __init__(self, name, size):
+        self.name = name
+        self.size = size
+
+    def __enter__(self):
+        return lvm.createEmptyImg(self.name, self.size)
+        
+    def __exit__(self, type, value, traceback):
+        if isinstance(value, BaseException):
+            lvm.removeLVM(self.name)
+
+if __name__ == "__main__":
+    vm_name = sys.argv[1]
+    col = QubesVmCollection()
+    col.lock_db_for_reading()
+    col.load()
+    col.unlock_db()
+    vm = col.get_vm_by_name(vm_name)
+    if vm is None:
+        log.error(" %s VM does not exists" % vm_name)
+        sys.exit(1)
+        
+    log.info("Migrating %s %s bytes" % (vm.private_img, vm.storage.private_img_size))
+    with NewLvmVolume(vm.name+"-private", vm.storage.private_img_size) as new_private:
+        with Mount(vm.private_img) as old:
+            with Mount(new_private) as new:
+                cmd = ["sudo", "rsync", "-av", old+"/", new]
+                log.info(' '.join(cmd))
+                retcode = subprocess.call(cmd)
+                if retcode != 0:
+                    raise IOError("Could not rsync %s/ to %s" % (old,new))
+
