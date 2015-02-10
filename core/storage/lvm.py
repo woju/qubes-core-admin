@@ -28,6 +28,7 @@ import shutil
 import sys
 
 from qubes.storage.xen import QubesXenVmStorage
+from qubes.qubes import QubesException
 
 VG = 'qubes_dom0'
 LVM = '/dev/' + VG + '/'
