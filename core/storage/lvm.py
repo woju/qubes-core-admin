@@ -73,6 +73,17 @@ def removeLVM(img):
     if retcode != 0:
         raise IOError ("Error removing LVM %s" % img)
 
+def snapshotLVM(old, new_name):
+    retcode = subprocess.call (["sudo", "lvcreate", "-s", old, "-n", new_name]) 
+    if retcode != 0:
+        raise IOError("Error snapshoting %s as %s" % (old, new_name))
+
+    retcode = subprocess.call (["sudo", "lvchange", "-kn", "-ay", new_name]) 
+    if retcode != 0:
+        raise IOError("Error snapshoting %s as %s" % (old, new_name))
+    return new_name
+
+
 def createEmptyImg(name, size):
     log.debug("Creating new Thin LVM %s in %s VG %s bytes"  % (name, VG, size))
     retcode = subprocess.call (["sudo", "lvcreate", "-T", "%s/pool00" % VG, '-n', name, '-V', str(size)+"B"]) 
