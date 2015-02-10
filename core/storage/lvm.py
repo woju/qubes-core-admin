@@ -48,6 +48,17 @@ class QubesLvmVmStorage(QubesXenVmStorage):
     def _get_privatedev(self):
         return "'phy:%s,%s,w'," % (self.private_img, self.private_dev)
 
+    def _get_rootdev(self):
+        if self.vm.is_updateable():
+            return "'phy:%s,%s,w'," % (self.root_img, self.root_dev)
+        else: # handle the the templates vms
+            if self.vm.template and self.vm.template.storage_type == "lvm":
+                removeLVM(self.root_img)
+                snapshotLVM(self.vm.template.root_img, self.root_img)
+                return "'phy:%s,%s,w'," % (self.root_img, self.root_dev)
+            else:
+                return super(QubesLvmVmStorage, self)._get_rootdev()
+
     def create_on_disk_private_img(self, verbose, source_template = None):
         self.log.info("Creating empty private img for %s" % self.vm.name)
         if source_template is not None:
