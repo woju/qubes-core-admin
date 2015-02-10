@@ -24,6 +24,7 @@ from __future__ import absolute_import
 import logging
 import subprocess
 import os
+import shutil
 
 from qubes.storage.xen import QubesXenVmStorage
 
@@ -67,7 +68,7 @@ class QubesLvmVmStorage(QubesXenVmStorage):
 
 
 def removeLVM(img):
-    retcode = subprocess.call (["sudo", "lvremove", "-f", LVM + img]) 
+    retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 
     log.debug("Removing LVM %s"  % img)
     if retcode != 0:
         raise IOError ("Error removing LVM %s" % img)

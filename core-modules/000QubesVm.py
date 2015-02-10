@@ -556,6 +556,7 @@ class QubesVm(object):
             self.icon_path = self.icon_path.replace(old_dirpath, new_dirpath)
         if hasattr(self, 'kernels_dir') and self.kernels_dir is not None:
             self.kernels_dir = self.kernels_dir.replace(old_dirpath, new_dirpath)
+        self.dir_path = new_dirpath
 
         self.post_rename(old_name)
 
