@@ -41,12 +41,25 @@ class QubesLvmVmStorage(QubesXenVmStorage):
     def __init__(self, vm, **kwargs):
         super(QubesLvmVmStorage, self).__init__(vm, **kwargs)
         self.private_img = LVM + vm.name + "-private"
+        if self.vm.is_updateable():
+            self.root_img = LVM + vm.name + "-root"
+            
 
     def _get_privatedev(self):
         return "'phy:%s,%s,w'," % (self.private_img, self.private_dev)
 
     def create_on_disk_private_img(self, verbose, source_template = None):
-        self.log.debug("Creating empty private img for %s" % self.vm.name)
+        self.log.info("Creating empty private img for %s" % self.vm.name)
+        if source_template is not None:
+            snapshotLVM(source_template.private_img, self.private_img)
+        else:
+            createEmptyImg(self.private_img, self.private_img_size)
+        if self.vm.is_updateable():
+            if source_template is not None:
+                snapshotLVM(source_template.root_img, self.root_img)
+            else:
+                createEmptyImg(self.root_img, self.root_img_size)
+            
 
 
 
@@ -65,6 +78,8 @@ class QubesLvmVmStorage(QubesXenVmStorage):
 
     def remove_from_disk(self):
         removeLVM(self.private_img)
+        if self.vm.is_updateable():
+            removeLVM(self.root_img)
         shutil.rmtree(self.vmdir)
 
     def clone_disk_files(self, src_vm, verbose):
@@ -82,13 +97,18 @@ class QubesLvmVmStorage(QubesXenVmStorage):
             if verbose:
                 print >> sys.stderr, "--> Copying the root image:\n{0} ==>\n{1}".\
                         format(src_vm.root_img, self.root_img)
-            self._copy_file(src_vm.root_img, self.root_img)
-
+            if src_vm.storage_type == "file":
+                self._copy_file(src_vm.root_img, self.root_img)
+            else:
+                snapshotLVM(src_vm.root_img, self.root_img)
             # TODO: modules?
 
         clean_volatile_img = src_vm.dir_path + "/clean-volatile.img.tar"
         if os.path.exists(clean_volatile_img):
             self._copy_file(clean_volatile_img, self.vm.dir_path + "/clean-volatile.img.tar")
+
+    def commit_template_changes(self):
+        pass
 
 def removeLVM(img):
     retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 
