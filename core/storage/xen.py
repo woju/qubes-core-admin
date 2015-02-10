@@ -31,7 +31,6 @@ import re
 from qubes.storage import QubesVmStorage
 from qubes.qubes import QubesException, vm_files
 
-
 class QubesXenVmStorage(QubesVmStorage):
     """
     Class for VM storage of Xen VMs.
@@ -79,12 +78,13 @@ class QubesXenVmStorage(QubesVmStorage):
                     "{dir}/root.img".format(dir=self.vmdir),
                     "file", self.root_dev, True)
 
+    def _get_privatedev(self):
+        return self._format_disk_dev(self.private_img, 'file', self.private_dev, True)
+
     def get_config_params(self):
         args = {}
         args['rootdev'] = self._get_rootdev()
-        args['privatedev'] = \
-                self._format_disk_dev(self.private_img,
-                        'file', self.private_dev, True)
+        args['privatedev'] = self._get_privatedev()
         args['volatiledev'] = \
                 self._format_disk_dev(self.volatile_img,
                         'file', self.volatile_dev, True)
@@ -137,6 +137,7 @@ class QubesXenVmStorage(QubesVmStorage):
             self.commit_template_changes()
 
     def rename(self, old_name, new_name):
+        self.log.info("Renaming %s to %s " % (old_name, new_name))
         super(QubesXenVmStorage, self).rename(old_name, new_name)
 
         old_dirpath = os.path.join(os.path.dirname(self.vmdir), old_name)
@@ -175,4 +176,3 @@ class QubesXenVmStorage(QubesVmStorage):
         f_root.close()
         os.umask(old_umask)
 
- 

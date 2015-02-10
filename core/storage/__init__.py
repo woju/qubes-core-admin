@@ -22,6 +22,7 @@
 
 from __future__ import absolute_import
 
+import logging
 import os
 import os.path
 import re
@@ -33,11 +34,15 @@ from qubes.qubes import vm_files,system_path,defaults
 from qubes.qubes import QubesException
 import qubes.qubesutils
 
+logging.basicConfig(level=logging.INFO)
+
 class QubesVmStorage(object):
     """
     Class for handling VM virtual disks. This is base class for all other
     implementations, mostly with Xen on Linux in mind.
     """
+
+    log = logging.getLogger(__name__)
 
     def __init__(self, vm,
             private_img_size = None,
@@ -157,22 +162,27 @@ class QubesVmStorage(object):
             self.volatile_img = self.volatile_img.replace(old_vmdir, new_vmdir)
 
     def verify_files(self):
+        self.log.info("Verifying files")
         if not os.path.exists (self.vmdir):
+            self.log.error("VM directory doesn't exist: %s" % self.vmdir)
             raise QubesException (
                 "VM directory doesn't exist: {0}".\
                 format(self.vmdir))
 
         if self.root_img and not os.path.exists (self.root_img):
+            self.log.error("VM root image doesn't exist: %s" % self.root_img)
             raise QubesException (
                 "VM root image file doesn't exist: {0}".\
                 format(self.root_img))
 
         if self.private_img and not os.path.exists (self.private_img):
+            self.log.error("VM private image doesn't exist: %s" % self.private_img)
             raise QubesException (
                 "VM private image file doesn't exist: {0}".\
                 format(self.private_img))
         if self.modules_img is not None:
             if not os.path.exists(self.modules_img):
+                self.log.error("VM modules image doesn't exist: %s" % self.modules_img)
                 raise QubesException (
                         "VM kernel modules image does not exists: {0}".\
                                 format(self.modules_img))
@@ -212,3 +222,4 @@ class QubesVmStorage(object):
             print >>sys.stderr, "WARNING: Creating empty VM private image file: {0}".\
                 format(self.private_img)
             self.storage.create_on_disk_private_img(verbose=False)
+

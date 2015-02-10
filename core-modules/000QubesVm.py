@@ -37,13 +37,14 @@ import xml.parsers.expat
 import xen.lowlevel.xc
 from qubes import qmemman
 from qubes import qmemman_algo
+from qubes.storage.xen import QubesXenVmStorage
+from qubes.storage.lvm import QubesLvmVmStorage, LVM
 
 from qubes.qubes import xs,dry_run,xc,xl_ctx
 from qubes.qubes import register_qubes_vm_class
 from qubes.qubes import QubesVmCollection,QubesException,QubesHost,QubesVmLabels
 from qubes.qubes import defaults,system_path,vm_files,qubes_max_qid
 from qubes.qmemman_client import QMemmanClient
-from qubes.storage.xen import QubesXenVmStorage
 
 import qubes.qubesutils
 
@@ -315,7 +316,7 @@ class QubesVm(object):
             self.services['meminfo-writer'] = False
 
         # Initialize VM image storage class
-        self.storage = QubesXenVmStorage(self)
+        self.storage = self._getStorage()
         if hasattr(self, 'kernels_dir'):
             self.storage.modules_img = os.path.join(self.kernels_dir,
                     "modules.img")
@@ -1767,5 +1768,13 @@ class QubesVm(object):
             "Qubes" + rx_type.sub("Vm", self.type),
             **attrs)
         return element
+
+
+    def _getStorage(self):
+            if self.is_appvm() and os.path.exists(LVM + self.name + "-private"):
+                return QubesLvmVmStorage(self)
+            else:
+                return QubesXenVmStorage(self)
+
 
 register_qubes_vm_class(QubesVm)
