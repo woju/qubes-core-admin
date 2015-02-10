@@ -109,13 +109,16 @@ class QubesLvmVmStorage(QubesXenVmStorage):
         if self.private_img:
             self.private_img = renameLVM(self.private_img, LVM + new_name + "-private")
         if self.root_img:
-            self.root_img = self.root_img.replace(old_vmdir, new_vmdir)
+            if self.vm.is_updateable():
+                self.root_img = renameLVM(self.root_img, LVM + new_name + "-root")
+            else:
+                self.root_img = self.root_img.replace(old_vmdir, new_vmdir)
         if self.volatile_img:
             self.volatile_img = self.volatile_img.replace(old_vmdir, new_vmdir)
 
     def remove_from_disk(self):
         removeLVM(self.private_img)
-        if self.vm.is_updateable():
+        if self.vm.is_updateable() or self.vm.template.storage_type == "lvm":
             removeLVM(self.root_img)
         shutil.rmtree(self.vmdir)
 
