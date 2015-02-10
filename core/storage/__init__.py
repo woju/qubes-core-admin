@@ -34,7 +34,7 @@ from qubes.qubes import vm_files,system_path,defaults
 from qubes.qubes import QubesException
 import qubes.qubesutils
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 class QubesVmStorage(object):
     """
@@ -162,7 +162,7 @@ class QubesVmStorage(object):
             self.volatile_img = self.volatile_img.replace(old_vmdir, new_vmdir)
 
     def verify_files(self):
-        self.log.info("Verifying files")
+        self.log.debug("Verifying files")
         if not os.path.exists (self.vmdir):
             self.log.error("VM directory doesn't exist: %s" % self.vmdir)
             raise QubesException (

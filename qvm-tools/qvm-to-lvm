@@ -16,14 +16,14 @@ class Mount():
     log = logging.getLogger(__name__)
     def __init__(self, target):
         self.target = target
-        log.info(target)
+        log.debug(target)
 
     def __enter__(self):
         options = ''
         self.mountpoint = self. getRandomMountPoint()
         self.execAsRoot("mkdir", ["-p", self.mountpoint])
         if os.path.isfile(self.target):
-            log.info("Using loop mount")
+            log.debug("Using loop mount")
             self.execAsRoot("mount", ['-oloop', self.target, self.mountpoint])
         else:
             self.execAsRoot("mount", [ self.target, self.mountpoint])
@@ -35,7 +35,7 @@ class Mount():
         return True
 
     def execAsRoot(self, cmd, options):
-        self.log.info( ' '.join(["sudo", cmd] + options))
+        self.log.debug( ' '.join(["sudo", cmd] + options))
         retcode = subprocess.call(["sudo", cmd] + options)
         if retcode != 0:
             raise IOError("Error while exectuing %s" % cmd)
@@ -66,12 +66,12 @@ if __name__ == "__main__":
         log.error(" %s VM does not exists" % vm_name)
         sys.exit(1)
         
-    log.info("Migrating %s %s bytes" % (vm.private_img, vm.storage.private_img_size))
+    log.debug("Migrating %s %s bytes" % (vm.private_img, vm.storage.private_img_size))
     with NewLvmVolume(lvm.LVM + vm.name+"-private", vm.storage.private_img_size) as new_private:
         with Mount(vm.private_img) as old:
             with Mount(new_private) as new:
                 cmd = ["sudo", "rsync", "-av", old+"/", new]
-                log.info(' '.join(cmd))
+                log.debug(' '.join(cmd))
                 retcode = subprocess.call(cmd)
                 if retcode != 0:
                     raise IOError("Could not rsync %s/ to %s" % (old,new))

@@ -30,7 +30,7 @@ from qubes.storage.xen import QubesXenVmStorage
 VG = 'qubes_dom0'
 LVM = '/dev/' + VG + '/'
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
@@ -44,12 +44,12 @@ class QubesLvmVmStorage(QubesXenVmStorage):
         return "'phy:%s,%s,w'," % (self.private_img, self.private_dev)
 
     def create_on_disk_private_img(self, verbose, source_template = None):
-        self.log.info("Creating empty private img for %s" % self.vm.name)
+        self.log.debug("Creating empty private img for %s" % self.vm.name)
 
 
 
     def rename(self, old_name, new_name):
-        self.log.info("Renaming %s to %s " % (old_name, new_name))
+        self.log.debug("Renaming %s to %s " % (old_name, new_name))
         old_vmdir = self.vmdir
         new_vmdir = os.path.join(os.path.dirname(self.vmdir), new_name)
         os.rename(self.vmdir, new_vmdir)
@@ -68,12 +68,12 @@ class QubesLvmVmStorage(QubesXenVmStorage):
 
 def removeLVM(img):
     retcode = subprocess.call (["sudo", "lvremove", "-f", LVM + img]) 
-    log.info("Removing LVM %s"  % img)
+    log.debug("Removing LVM %s"  % img)
     if retcode != 0:
         raise IOError ("Error removing LVM %s" % img)
 
 def createEmptyImg(name, size):
-    log.info("Creating new Thin LVM %s in %s VG %s bytes"  % (name, VG, size))
+    log.debug("Creating new Thin LVM %s in %s VG %s bytes"  % (name, VG, size))
     retcode = subprocess.call (["sudo", "lvcreate", "-T", "%s/pool00" % VG, '-n', name, '-V', str(size)+"B"]) 
     if retcode != 0:
         raise IOError ("Error creating thin LVM %s" % name)
@@ -88,7 +88,7 @@ def createEmptyImg(name, size):
 
 
 def renameLVM(old_name, new_name):
-    log.info("Renaming LVM  %s to %s " % (old_name, new_name))
+    log.debug("Renaming LVM  %s to %s " % (old_name, new_name))
     retcode = subprocess.call (["sudo", "lvrename", "%s/%s" % (VG,
                 os.path.basename(old_name)), os.path.basename(new_name)]) 
     if retcode != 0:
