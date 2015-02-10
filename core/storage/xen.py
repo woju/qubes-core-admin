@@ -81,13 +81,14 @@ class QubesXenVmStorage(QubesVmStorage):
     def _get_privatedev(self):
         return self._format_disk_dev(self.private_img, 'file', self.private_dev, True)
 
+    def _get_volatiledev(self):
+        return self._format_disk_dev(self.volatile_img, 'file', self.volatile_dev, True)
+
     def get_config_params(self):
         args = {}
         args['rootdev'] = self._get_rootdev()
         args['privatedev'] = self._get_privatedev()
-        args['volatiledev'] = \
-                self._format_disk_dev(self.volatile_img,
-                        'file', self.volatile_dev, True)
+        args['volatiledev'] = self._get_volatiledev()
         if self.modules_img is not None:
             args['otherdevs'] = \
                     self._format_disk_dev(self.modules_img,
