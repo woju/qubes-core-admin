@@ -67,20 +67,23 @@ class QubesLvmVmStorage(QubesXenVmStorage):
 
 
 def removeLVM(img):
-    retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 
+    retcode = subprocess.call (["sudo", "lvremove", "-f", LVM + img]) 
     log.info("Removing LVM %s"  % img)
     if retcode != 0:
         raise IOError ("Error removing LVM %s" % img)
 
-def createEmptyImg(name):
-    retcode = subprocess.call (["sudo", "lvcreate", "-T", "%s/pool00" % VG,
-            '-n', self.vm.name + "-private", '-V', self.private_img_size]) 
-    log.info("Creating new Thin LVM %s"  % name)
+def createEmptyImg(name, size):
+    log.info("Creating new Thin LVM %s in %s VG %s bytes"  % (name, VG, size))
+    retcode = subprocess.call (["sudo", "lvcreate", "-T", "%s/pool00" % VG, '-n', name, '-V', str(size)+"B"]) 
     if retcode != 0:
         raise IOError ("Error creating thin LVM %s" % name)
-    retcode = subprocess.call (["sudo", "mkfs.ext4", self.private_img])
+    retcode = subprocess.call(["sudo", "lvchange", "-kn", "-ay", name])
+    if retcode != 0:
+        raise IOError ("Error activation LVM %s" % name)
+    retcode = subprocess.call (["sudo", "mkfs.ext4", name])
     if retcode != 0:
         raise IOError ("Error making ext4 fs")
+    return name
 
 
 

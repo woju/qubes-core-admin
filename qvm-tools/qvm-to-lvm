@@ -67,7 +67,7 @@ if __name__ == "__main__":
         sys.exit(1)
         
     log.info("Migrating %s %s bytes" % (vm.private_img, vm.storage.private_img_size))
-    with NewLvmVolume(vm.name+"-private", vm.storage.private_img_size) as new_private:
+    with NewLvmVolume(lvm.LVM + vm.name+"-private", vm.storage.private_img_size) as new_private:
         with Mount(vm.private_img) as old:
             with Mount(new_private) as new:
                 cmd = ["sudo", "rsync", "-av", old+"/", new]
