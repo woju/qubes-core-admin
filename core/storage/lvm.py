@@ -42,7 +42,7 @@ class QubesLvmVmStorage(QubesXenVmStorage):
     def __init__(self, vm, **kwargs):
         super(QubesLvmVmStorage, self).__init__(vm, **kwargs)
         self.private_img = LVM + vm.name + "-private"
-        if self.vm.is_updateable():
+        if self.vm.is_template() or (self.vm.template and self.vm.template.storage_type == "lvm"):
             self.root_img = LVM + vm.name + "-root"
             
 
@@ -52,8 +52,8 @@ class QubesLvmVmStorage(QubesXenVmStorage):
     def _get_rootdev(self):
         if self.vm.is_updateable():
             return "'phy:%s,%s,w'," % (self.root_img, self.root_dev)
-        else: # handle the the templates vms
-            if self.vm.template and self.vm.template.storage_type == "lvm":
+        elif self.vm.template: # handle the the templates vms
+            if self.vm.template.storage_type == "lvm":
                 removeLVM(self.root_img)
                 snapshotLVM(self.vm.template.root_img, self.root_img)
                 return "'phy:%s,%s,w'," % (self.root_img, self.root_dev)
