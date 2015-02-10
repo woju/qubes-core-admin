@@ -125,7 +125,7 @@ def removeLVM(img):
     retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 
     log.debug("Removing LVM %s"  % img)
     if retcode != 0:
-        raise IOError ("Error removing LVM %s" % img)
+        log.info("No old root LVM to remove" % img)
 
 def snapshotLVM(old, new_name):
     retcode = subprocess.call (["sudo", "lvcreate", "-s", old, "-n", new_name]) 
