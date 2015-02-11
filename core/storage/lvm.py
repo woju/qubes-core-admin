@@ -42,7 +42,7 @@ class QubesLvmVmStorage(QubesXenVmStorage):
     def __init__(self, vm, **kwargs):
         super(QubesLvmVmStorage, self).__init__(vm, **kwargs)
         self.private_img = LVM + vm.name + "-private"
-        if self.vm.is_template() or (self.vm.template and self.vm.template.storage_type == "lvm"):
+        if self.vm.is_updateable() or (self.vm.template and self.vm.template.storage_type == "lvm"):
             self.root_img = LVM + vm.name + "-root"
             
 
