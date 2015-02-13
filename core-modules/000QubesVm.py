@@ -847,6 +847,9 @@ class QubesVm(object):
             return False
 
         rootimg_inode = os.stat(self.template.root_img)
+        if not os.path.exists(self.template.rootcow_img): # Hack for get LVM and
+            return False                                  # Qubes manager working
+                                                          # TODO fix me
         try:
             rootcow_inode = os.stat(self.template.rootcow_img)
         except OSError:
