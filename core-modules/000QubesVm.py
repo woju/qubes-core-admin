@@ -26,7 +26,6 @@ import datetime
 import fcntl
 import lxml.etree
 import os
-import os.path
 import re
 import shutil
 import subprocess
@@ -847,11 +846,11 @@ class QubesVm(object):
             return False
 
         rootimg_inode = os.stat(self.template.root_img)
-        if not os.path.exists(self.template.rootcow_img): # Hack for get LVM and
+        if not os.path.exists(self.template.rootcow_img()): # Hack for get LVM and
             return False                                  # Qubes manager working
                                                           # TODO fix me
         try:
-            rootcow_inode = os.stat(self.template.rootcow_img)
+            rootcow_inode = os.stat(self.template.rootcow_img())
         except OSError:
             # The only case when rootcow_img doesn't exists is in the middle of
             # commit_changes, so VM is outdated right now
