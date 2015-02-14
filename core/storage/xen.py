@@ -178,28 +178,29 @@ class QubesXenVmStorage(QubesVmStorage):
         os.umask(old_umask)
 
     def is_outdated(self):
-        """ See also https://wiki.qubes-os.org/wiki/TemplateImplementation """
-        vm = self.vm
-        if vm.template is None or not vm.is_running() or \
-            not hasattr(vm.template, 'rootcow_img'):
-            return False
+        return file_image_changed(self.vm)
 
-        rootimg_inode = os.stat(vm.template.root_img)
-        try:
-            rootcow_inode = os.stat(vm.template.rootcow_img)
-        except OSError:
-            # The only case when rootcow_img doesn't exists is in the middle of
-            # commit_changes, so VM is outdated right now
-            return True
+def file_image_changed(vm):
+    """ See also https://wiki.qubes-os.org/wiki/TemplateImplementation """
+    if vm.template is None or not vm.is_running() or \
+        not hasattr(vm.template, 'rootcow_img'):
+        return False
 
-        current_dmdev = "/dev/mapper/snapshot-{0:x}:{1}-{2:x}:{3}".format(
-                rootimg_inode[2], rootimg_inode[1],
-                rootcow_inode[2], rootcow_inode[1])
+    rootimg_inode = os.stat(vm.template.root_img)
+    try:
+        rootcow_inode = os.stat(vm.template.rootcow_img)
+    except OSError:
+        # The only case when rootcow_img doesn't exists is in the middle of
+        # commit_changes, so VM is outdated right now
+        return True
 
-        # 51712 (0xCA00) is xvda
-        #  backend node name not available through xenapi :(
-        used_dmdev = xs.read('',
-            "/local/domain/0/backend/vbd/{0}/51712/node".format(vm.get_xid()))
+    current_dmdev = "/dev/mapper/snapshot-{0:x}:{1}-{2:x}:{3}".format(
+            rootimg_inode[2], rootimg_inode[1],
+            rootcow_inode[2], rootcow_inode[1])
 
-        return used_dmdev != current_dmdev
+    # 51712 (0xCA00) is xvda
+    #  backend node name not available through xenapi :(
+    used_dmdev = xs.read('',
+        "/local/domain/0/backend/vbd/{0}/51712/node".format(vm.get_xid()))
 
+    return used_dmdev != current_dmdev
