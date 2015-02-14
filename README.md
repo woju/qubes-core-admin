@@ -17,6 +17,8 @@ Clone  your default template as `fedora-20-x64-dev` template. Install the defaul
 
 Each template only costs the little bit extra space for the specific tools and not 10Gb like currently, because each time you clone a vm the private and root image are created as **thin** snapshots. You can read more about LVM on [Gentoo Wiki](http://wiki.gentoo.org/wiki/LVM#Creating_a_thin_pool)
 
+This way you can now create an own vm for each of your python project.
+
 ## State 
 The current implementation is the fourth incarnation working on my daily used workstation. All the basic operations work (See also *Implemented Features* list). After the installation you can still use your old file based VM images. All operations on file based images work like before.
 
