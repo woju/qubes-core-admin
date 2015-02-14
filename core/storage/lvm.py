@@ -27,7 +27,7 @@ import os
 import shutil
 import sys
 
-from qubes.storage.xen import QubesXenVmStorage
+from qubes.storage.xen import QubesXenVmStorage, file_image_changed
 from qubes.qubes import QubesException
 
 VG = 'qubes_dom0'
@@ -151,7 +151,10 @@ class QubesLvmVmStorage(QubesXenVmStorage):
         pass
 
     def is_outdated(self):
-        return False
+        if self.vm.template and self.vm.template.storage_type == "file":
+            return file_image_changed(self.vm)
+        else:
+            return False
 
 def removeLVM(img):
     retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 
