@@ -26,6 +26,7 @@ import subprocess
 import os
 import shutil
 import sys
+import datetime
 
 from qubes.storage.xen import QubesXenVmStorage, file_image_changed
 from qubes.qubes import QubesException
@@ -153,8 +154,21 @@ class QubesLvmVmStorage(QubesXenVmStorage):
     def is_outdated(self):
         if self.vm.template and self.vm.template.storage_type == "file":
             return file_image_changed(self.vm)
+        elif self.vm.template and self.vm.template.storage_type == "lvm":
+            return lvm_image_changed(self.vm)
         else:
             return False
+
+def lvm_image_changed(vm):
+    vm_root = vm.root_img
+    tp_root = vm.template.root_img
+    cmd = 'sudo tune2fs %s -l|grep "Last write time"|cut -d":" -f2,3,4'
+    result1 = subprocess.check_output(cmd % vm_root, shell=True).strip()
+    result2 = subprocess.check_output(cmd % tp_root, shell=True).strip()
+    
+    result1 = datetime.datetime.strptime(result1, '%c')
+    result2 = datetime.datetime.strptime(result2, '%c')
+    return result2 > result1
 
 def removeLVM(img):
     retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 
