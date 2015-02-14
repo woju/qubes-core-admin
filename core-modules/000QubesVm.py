@@ -835,36 +835,7 @@ class QubesVm(object):
             return None
 
     def is_outdated(self):
-        # Makes sense only on VM based on template
-        if self.template is None:
-            return False
-
-        if not self.is_running():
-            return False
-
-        if not hasattr(self.template, 'rootcow_img'):
-            return False
-
-        rootimg_inode = os.stat(self.template.root_img)
-        if not os.path.exists(self.template.rootcow_img()): # Hack for get LVM and
-            return False                                  # Qubes manager working
-                                                          # TODO fix me
-        try:
-            rootcow_inode = os.stat(self.template.rootcow_img())
-        except OSError:
-            # The only case when rootcow_img doesn't exists is in the middle of
-            # commit_changes, so VM is outdated right now
-            return True
-
-        current_dmdev = "/dev/mapper/snapshot-{0:x}:{1}-{2:x}:{3}".format(
-                rootimg_inode[2], rootimg_inode[1],
-                rootcow_inode[2], rootcow_inode[1])
-
-        # 51712 (0xCA00) is xvda
-        #  backend node name not available through xenapi :(
-        used_dmdev = xs.read('', "/local/domain/0/backend/vbd/{0}/51712/node".format(self.get_xid()))
-
-        return used_dmdev != current_dmdev
+        return self.storage.is_outdated()
 
     @property
     def private_img(self):

@@ -214,6 +214,12 @@ class QubesVmStorage(object):
                 self.volatile_img, str(self.root_img_size / 1024 / 1024)])
 
 
+    def is_outdated(self):
+        """ Checks whether the root storage of a template based vm needs to be
+            updated
+        """
+        raise NotImplementedError
+
     def prepare_for_vm_startup(self, verbose):
         self.reset_volatile_storage(verbose=verbose)
 

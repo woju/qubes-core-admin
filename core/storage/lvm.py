@@ -150,6 +150,9 @@ class QubesLvmVmStorage(QubesXenVmStorage):
     def commit_template_changes(self):
         pass
 
+    def is_outdated(self):
+        return False
+
 def removeLVM(img):
     retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 
     log.debug("Removing LVM %s"  % img)
