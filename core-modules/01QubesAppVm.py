@@ -23,8 +23,10 @@
 #
 
 import os.path
+import subprocess
+from qubes.storage import lvm
 
-from qubes.qubes import QubesVm,QubesVmLabel,register_qubes_vm_class,system_path
+from qubes.qubes import QubesVm,QubesVmLabel,register_qubes_vm_class,system_path,dry_run
 
 class QubesAppVm(QubesVm):
     """
@@ -44,5 +46,17 @@ class QubesAppVm(QubesVm):
 
     def is_appvm(self):
         return True
+
+    def shutdown(self, force=False, xid = None):
+        if dry_run:
+            return
+
+        if not self.is_running():
+            raise QubesException ("VM already stopped!")
+
+        subprocess.call (['/usr/sbin/xl', 'shutdown', str(xid) if xid is not None else self.name])
+        #xc.domain_destroy(self.get_xid())
+        if self.storage_type == 'lvm':
+            lvm.removeLVM(self.root_img)
 
 register_qubes_vm_class(QubesAppVm)
