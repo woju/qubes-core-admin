@@ -24,6 +24,7 @@ from __future__ import absolute_import
 import logging
 import subprocess
 import os
+import time
 import shutil
 import sys
 import datetime
@@ -173,8 +174,12 @@ def lvm_image_changed(vm):
 def removeLVM(img):
     retcode = subprocess.call (["sudo", "lvremove", "-f", img]) 
     log.debug("Removing LVM %s"  % img)
-    if retcode != 0:
-        log.info("No old root %s LVM to remove" % img)
+    if retcode != 0 and os.path.exists(img):
+        while(os.path.exists(img)):
+            subprocess.call (["sudo", "lvremove", "-f", img])
+            time.sleep(0.25)
+    elif retcode != 0:
+        log.debug("No old root %s LVM to remove" % img)
 
 def snapshotLVM(old, new_name):
     retcode = subprocess.call (["sudo", "lvcreate", "-s", old, "-n", new_name]) 
