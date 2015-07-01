@@ -13,8 +13,8 @@ class TemplateVM(qubes.vm.qubesvm.QubesVM):
         return self.storage.rootcow_img
 
 
-    def __init__(self, D):
-        super(TemplateVM, self).__init__(D)
+    def __init__(self, *args, **kwargs):
+        super(TemplateVM, self).__init__(*args, **kwargs)
 
         # Some additional checks for template based VM
         assert self.root_img is not None, "Missing root_img for standalone VM!"
