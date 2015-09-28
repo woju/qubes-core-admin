@@ -40,7 +40,6 @@ import libvirt
 
 import qubes
 import qubes.config
-import qubes.qdb
 #import qubes.qmemman
 #import qubes.qmemman_algo
 import qubes.storage
@@ -337,6 +336,7 @@ class QubesVM(qubes.vm.BaseVM):
         '''QubesDB handle for this domain.'''
         if self._qdb_connection is None:
             if self.is_running():
+                import qubes.qdb
                 self._qdb_connection = qubes.qdb.QubesDB(self.name)
         return self._qdb_connection
 
