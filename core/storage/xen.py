@@ -65,32 +65,27 @@ class XenStorage(QubesVmStorage):
         self.volatile_img = os.path.join(vmdir, 'volatile.img')
 
     def root_dev_config(self):
-        if self.vm.is_template() and \
-                os.path.exists(os.path.join(self.vmdir, "root-cow.img")):
+        if self.vm.is_template() and os.path.exists(self.rootcow_img):
             return self.format_disk_dev(
-                    "{dir}/root.img:{dir}/root-cow.img".format(
-                        dir=self.vmdir),
-                    "block-origin", self.root_dev, True)
-        elif self.vm.template and not self.vm.template.storage.rootcow_img:
-            # HVM template-based VM - template doesn't have own
-            # root-cow.img, only one device-mapper layer
-            return self.format_disk_dev(
-                    "{tpldir}/root.img:{vmdir}/volatile.img".format(
-                        tpldir=self.vm.template.dir_path,
-                        vmdir=self.vmdir),
-                    "block-snapshot", self.root_dev, True)
+                "%s:%s" % (self.root_img, self.rootcow_img),
+                "block-origin", self.root_dev, True)
         elif self.vm.template:
-            # any other template-based VM - two device-mapper layers: one
-            # in dom0 (here) from root+root-cow, and another one from
-            # this+volatile.img
-            return self.format_disk_dev(
-                    "{dir}/root.img:{dir}/root-cow.img".format(
-                        dir=self.vm.template.dir_path),
+            if not self.vm.template.storage.rootcow_img:
+                # HVM template-based VM - template doesn't have own
+                # root-cow.img, only one device-mapper layer
+                return self.format_disk_dev("%s:%s" % (
+                    self.vm.template.root_img, self.vm.volatile_img),
+                    "block-snapshot", self.root_dev, True)
+            else:
+                # any other template-based VM - two device-mapper layers: one
+                # in dom0 (here) from root+root-cow, and another one from
+                # this+volatile.img
+                return self.format_disk_dev("%s:%s" % (
+                    self.vm.template.root_img, self.vm.template.rootcow_img),
                     "block-snapshot", self.root_dev, False)
         else:
-            return self.format_disk_dev(
-                    "{dir}/root.img".format(dir=self.vmdir),
-                    None, self.root_dev, True)
+            return self.format_disk_dev(self.root_img, None,
+                                        self.root_dev, True)
 
     def private_dev_config(self):
         return self.format_disk_dev(self.private_img, None,
