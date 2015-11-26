@@ -37,3 +37,5 @@ endif
 	cp hardware.py[co] $(DESTDIR)$(PYTHON_TESTSPATH)
 	cp extra.py $(DESTDIR)$(PYTHON_TESTSPATH)
 	cp extra.py[co] $(DESTDIR)$(PYTHON_TESTSPATH)
+	cp storage_lvm.py $(DESTDIR)$(PYTHON_TESTSPATH)
+	cp storage_lvm.py[co] $(DESTDIR)$(PYTHON_TESTSPATH)
