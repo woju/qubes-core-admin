@@ -760,6 +760,7 @@ def load_tests(loader, tests, pattern):
             'qubes.tests.storage_xen',
             'qubes.tests.hardware',
             'qubes.tests.extra',
+            'qubes.tests.storage_lvm',
             ):
         tests.addTests(loader.loadTestsFromName(modname))
     return tests
