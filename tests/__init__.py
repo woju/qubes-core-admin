@@ -30,7 +30,6 @@ import shutil
 import subprocess
 import unittest
 
-import lxml.etree
 import sys
 
 import qubes.backup
