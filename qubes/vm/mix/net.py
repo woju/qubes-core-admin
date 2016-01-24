@@ -49,19 +49,26 @@ class NetVMMixin(object):
             NetVM or ProxyVM)''')
 
 
+    #
     # used in networked appvms or proxyvms (netvm is not None)
+    #
 
     @qubes.tools.qvm_ls.column(width=15)
     @property
     def ip(self):
         '''IP address of this domain.'''
+        if not self.is_networked():
+            return None
         if self.netvm is not None:
             return self.netvm.get_ip_for_vm(self)
         else:
-            return None
+            return self.get_ip_for_vm(self)
 
+
+    #
     # used in netvms (provides_network=True)
     # those properties and methods are most likely accessed as vm.netvm.<prop>
+    #
 
     def get_ip_for_vm(self, vm):
         '''Get IP address for (appvm) domain connected to this (netvm) domain.
@@ -78,21 +85,13 @@ class NetVMMixin(object):
     @property
     def gateway(self):
         '''Gateway for other domains that use this domain as netvm.'''
-
-        if self.netvm is not None:
-            return self.netvm.ip
-        else:
-            return None
+        return self.ip if self.provides_network else None
 
     @qubes.tools.qvm_ls.column(width=15)
     @property
     def netmask(self):
         '''Netmask for gateway address.'''
-        if self.provides_network:
-            return '255.255.255.255'
-        if self.netvm is not None:
-            return self.netvm.netmask
-        return None
+        return '255.255.255.255' if self.is_networked() else None
 
     @qubes.tools.qvm_ls.column(width=7)
     @property
@@ -104,6 +103,7 @@ class NetVMMixin(object):
         if self.netvm is None:
             return None
         return "vif{0}.+".format(self.xid)
+
 
     #
     # used in both

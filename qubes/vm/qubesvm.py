@@ -1506,7 +1506,6 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
         if self.provides_network:
             self.qdb.write('/network-provider/gateway', self.gateway)
             self.qdb.write('/network-provider/netmask', self.netmask)
-            self.qdb.write('/network-provider/network', self.network)
 
             for i, addr in zip(itertools.count(start=1), self.dns):
                 self.qdb.write('/network-provider/dns-{}'.format(i), addr)
