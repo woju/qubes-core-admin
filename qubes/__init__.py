@@ -1177,6 +1177,11 @@ class Qubes(PropertyHolder):
         #: Information about host system
         self.host = QubesHost(self)
 
+        #: default qubes.xml location can be set using environment variable (
+        # mostly used for multi-process tests)
+        if store is None and 'QUBES_XML_PATH' in os.environ:
+            store = os.environ['QUBES_XML_PATH']
+
         self._store = store if store is not None else os.path.join(
             qubes.config.system_path['qubes_base_dir'],
             qubes.config.system_path['qubes_store_filename'])
