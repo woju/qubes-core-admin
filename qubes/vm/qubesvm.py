@@ -1058,10 +1058,9 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
             (if :py:obj:`None`, use domain's own template
         '''
 
-        if source_template is None:
+        if source_template is None and hasattr(self, 'template'):
             # pylint: disable=no-member
             source_template = self.template
-        assert source_template is not None
 
         self.storage.create_on_disk(source_template)
 
@@ -1169,7 +1168,7 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
             raise qubes.exc.QubesVMNotHaltedError(
                 self, 'Cannot clone a running domain {!r}'.format(self.name))
 
-        self.storage.clone_disk_files(src, verbose=False)
+        self.storage.clone_disk_files(src)
 
         if src.icon_path is not None \
                 and os.path.exists(src.dir_path) \
