@@ -1050,6 +1050,10 @@ class VMProperty(property):
 
 
     def __set__(self, instance, value):
+        # XML deserialization
+        # XXX Use some special value?
+        if value == 'None':
+            value = None
         if value is None:
             if self.allow_none:
                 super(VMProperty, self).__set__(instance, value)
