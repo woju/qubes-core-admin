@@ -1177,6 +1177,12 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
         # fire hooks
         self.fire_event('cloned-files', src)
 
+    def clone_properties(self, src, proplist=None):
+        if proplist is None:
+            # exclude name and qid - those should be unique
+            proplist = [prop for prop in self.property_list()
+                        if prop.__name__ not in ['qid', 'name', 'uuid']]
+        super(QubesVM, self).clone_properties(src, proplist)
 
     #
     # methods for querying domain state
