@@ -166,9 +166,8 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
         ls_width=36,
         doc='UUID from libvirt.')
 
-    hvm = qubes.property(
-        'hvm',
-        type=bool,
+    hvm = qubes.property('hvm',
+        type=bool, setter=qubes.property.bool,
         default=False,
         doc='Use full virtualization (HVM) for this qubes, instead of '
             'paravirtualization (PV)'
