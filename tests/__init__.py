@@ -725,6 +725,7 @@ def load_tests(loader, tests, pattern):
             'qubes.tests.storage',
             'qubes.tests.storage_xen',
             'qubes.tests.hardware',
+            'qubes.tests.gpg_split',
             ):
         tests.addTests(loader.loadTestsFromName(modname))
 

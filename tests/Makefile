@@ -33,3 +33,5 @@ endif
 	cp storage_xen.py[co] $(DESTDIR)$(PYTHON_TESTSPATH)
 	cp hardware.py $(DESTDIR)$(PYTHON_TESTSPATH)
 	cp hardware.py[co] $(DESTDIR)$(PYTHON_TESTSPATH)
+	cp gpg_split.py $(DESTDIR)$(PYTHON_TESTSPATH)
+	cp gpg_split.py[co] $(DESTDIR)$(PYTHON_TESTSPATH)
