@@ -1053,7 +1053,7 @@ class VMProperty(property):
 
         super(VMProperty, self).__init__(name,
             saver=(lambda self, prop, value:
-                self._none_value if value is None else value.name),
+                prop._none_value if value is None else value.name),
             **kwargs)
         self.vmclass = vmclass
         self.allow_none = allow_none
