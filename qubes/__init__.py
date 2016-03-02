@@ -1052,7 +1052,7 @@ class VMProperty(property):
                 "'vmclass' should specify a subclass of qubes.vm.BaseVM")
 
         super(VMProperty, self).__init__(name,
-            saver=(lambda self, prop, value:
+            saver=(lambda self_, prop, value:
                 self._none_value if value is None else value.name),
             **kwargs)
         self.vmclass = vmclass
