@@ -27,7 +27,10 @@
 			<viridian/>
 		</features>
 
-		<clock offset="variable" adjustment='{timeoffset}' basis='{time_basis}'/>
+        {# TODO
+        <clock offset="variable"
+            adjustment='{timeoffset}' basis='{time_basis}'/>
+        #}
 	{% else %}
 		<clock offset='utc' adjustment='reset'>
 			<timer name="tsc" mode="native"/>
