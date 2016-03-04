@@ -44,11 +44,10 @@ import lxml.etree
 import qubes
 import qubes.log
 import qubes.events
-import qubes.plugins
 import qubes.tools.qvm_ls
 
 
-class BaseVMMeta(qubes.plugins.Plugin, qubes.events.EmitterMeta):
+class BaseVMMeta(qubes.events.EmitterMeta):
     '''Metaclass for :py:class:`.BaseVM`'''
     def __init__(cls, name, bases, dict_):
         super(BaseVMMeta, cls).__init__(name, bases, dict_)
@@ -571,7 +570,3 @@ class BaseVM(qubes.PropertyHolder):
             return None
 
         return conf
-
-
-__all__ = ['BaseVMMeta', 'DeviceCollection', 'DeviceManager', 'BaseVM'] \
-    + qubes.plugins.load(__file__)
