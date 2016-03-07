@@ -291,7 +291,6 @@ class StatusColumn(Column):
         import qubes.vm.adminvm
         import qubes.vm.appvm
         import qubes.vm.dispvm
-        import qubes.vm.hvm
         import qubes.vm.qubesvm
         import qubes.vm.templatevm
 
@@ -310,10 +309,7 @@ class StatusColumn(Column):
             ret = 'd'
 
         if ret is not None:
-            if isinstance(vm, qubes.vm.hvm.HVM):
-                return ret.upper()
-            else:
-                return ret
+            return ret
 
 
     @flag(2)

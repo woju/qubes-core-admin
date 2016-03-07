@@ -31,6 +31,7 @@ Qubes OS
 '''
 
 from __future__ import absolute_import
+import pkg_resources
 
 __author__ = 'Invisible Things Lab'
 __license__ = 'GPLv2 or later'
