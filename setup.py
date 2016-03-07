@@ -36,6 +36,7 @@ if __name__ == '__main__':
             ],
             'qubes.ext': [
                 'qubes.ext.qubesmanager = qubes.ext.qubesmanager:QubesManager',
+                'qubes.ext.r3compatibility = qubes.ext.r3compatibility:R3Compatibility',
             ],
         }
     )
