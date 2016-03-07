@@ -488,6 +488,9 @@ class BaseVM(qubes.PropertyHolder):
             subprocess.call(["sudo", "systemctl", "start",
                              "qubes-reload-firewall@%s.timer" % self.name])
 
+        # XXX any better idea? some arguments?
+        self.fire_event('firewall-changed')
+
         return True
 
     def has_firewall(self):
