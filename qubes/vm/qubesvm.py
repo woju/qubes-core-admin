@@ -670,12 +670,6 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
             self.start_qubesdb()
             self.create_qdb_entries()
 
-            self.log.info('Updating firewall rules')
-
-            for vm in self.app.domains:
-                if vm.is_proxyvm() and vm.is_running():
-                    vm.write_iptables_xenstore_entry()
-
             self.log.warning('Activating the {} VM'.format(self.name))
             self.libvirt_domain.resume()
 
