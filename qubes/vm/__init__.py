@@ -141,9 +141,9 @@ class BaseVM(qubes.PropertyHolder):
         features = lxml.etree.Element('features')
         for feature in self.features:
             node = lxml.etree.Element('service', name=feature)
-            node.text = self.features[feature] if feature else None
+            node.text = str(self.features[feature]) if feature else None
             features.append(node)
-        element.append(feature)
+        element.append(features)
 
         for devclass in self.devices:
             devices = lxml.etree.Element('devices')
