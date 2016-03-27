@@ -1255,6 +1255,7 @@ class Qubes(PropertyHolder):
         for node in self.xml.xpath('./domains/domain'):
             # pylint: disable=no-member
             cls = self.get_vm_class(node.get('class'))
+            assert cls, "Unknown domain class " + str(node.get('class'))
             vm = cls(self, node)
             vm.load_properties(load_stage=2)
             vm.init_log()
@@ -1415,7 +1416,7 @@ class Qubes(PropertyHolder):
         '''
 
         try:
-            get_entry_point_one('qubes.vm', clsname)
+            return get_entry_point_one('qubes.vm', clsname)
         except KeyError:
             raise qubes.exc.QubesException(
                 'no such VM class: {!r}'.format(clsname))
