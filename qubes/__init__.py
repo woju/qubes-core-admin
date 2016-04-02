@@ -1228,6 +1228,9 @@ class Qubes(PropertyHolder):
 
         self.events_enabled = True
 
+    @__builtin__.property
+    def store(self):
+        return self._store
 
     def load(self):
         '''Open qubes.xml
