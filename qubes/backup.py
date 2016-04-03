@@ -2187,7 +2187,7 @@ class BackupRestore(object):
                                      "restored")
 
                 try:
-                    new_vm.fire_event('recreate-appmenus')
+                    new_vm.fire_event('domain-restore')
                 except Exception as err:
                     self.log.error("ERROR during appmenu restore: "
                        "{0}".format(err))
