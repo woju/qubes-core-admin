@@ -2064,6 +2064,7 @@ class QubesVm(object):
                                 "anyway".format(str(e))
 
         self.libvirt_domain.shutdown()
+        self.storage.shutdown()
 
     def force_shutdown(self, xid = None):
         self.log.debug('force_shutdown()')
