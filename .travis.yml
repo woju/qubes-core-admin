@@ -5,7 +5,7 @@ python:
   - '2.7'
 install:
   - pip install --quiet -r ci/requirements.txt
-  - git clone https://github.com/QubesOS/qubes-builder ~/qubes-builder
+  - git clone https://github.com/"${TRAVIS_REPO_SLUG%%/*}"/qubes-builder ~/qubes-builder
 # debootstrap in trusty is old...
 before_script: sudo ln -s sid /usr/share/debootstrap/scripts/stretch
 script:
@@ -14,6 +14,12 @@ script:
   - ~/qubes-builder/scripts/travis-build
 env:
  - DIST_DOM0=fc23 USE_QUBES_REPO_VERSION=3.2 USE_QUBES_REPO_TESTING=1
+
+deploy:
+  provider: script
+  script: ~/qubes-builder/scripts/travis-deploy
+  on:
+    branch: /.+-staging$/
 
 addons:
   apt:
