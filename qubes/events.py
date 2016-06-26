@@ -127,7 +127,7 @@ class Emitter(object):
         '''
 
         if not self.events_enabled:
-            return
+            return []
 
         effects = []
         for cls in order:
