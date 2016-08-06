@@ -77,7 +77,6 @@ class Label(object):
         #: :py:meth:`PyQt4.QtGui.QIcon.fromTheme` on DispVMs
         self.icon_dispvm = 'dispvm-' + name
 
-
     @classmethod
     def fromxml(cls, xml):
         '''Create label definition from XML node
@@ -91,7 +90,6 @@ class Label(object):
         name = xml.text
 
         return cls(index, color, name)
-
 
     def __xml__(self):
         element = lxml.etree.Element(
@@ -109,7 +107,6 @@ class Label(object):
             self.color,
             self.name)
 
-
     @__builtin__.property
     def icon_path(self):
         '''Icon path
@@ -119,7 +116,6 @@ class Label(object):
         '''
         return os.path.join(qubes.config.system_path['qubes_icon_dir'],
             self.icon) + ".png"
-
 
     @__builtin__.property
     def icon_path_dispvm(self):
@@ -132,7 +128,7 @@ class Label(object):
             self.icon_dispvm) + ".png"
 
 
-class property(object): # pylint: disable=redefined-builtin,invalid-name
+class property(object):  # pylint: disable=redefined-builtin,invalid-name
     '''Qubes property.
 
     This class holds one property that can be saved to and loaded from
@@ -212,7 +208,6 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
             self.ls_head = ls_head or self.__name__.replace('_', '-').upper()
             self.ls_width = max(ls_width or 0, len(self.ls_head) + 1)
 
-
     def __get__(self, instance, owner):
         if instance is None:
             return self
@@ -233,7 +228,6 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
                 return self._default(instance)
             else:
                 return self._default
-
 
     def __set__(self, instance, value):
         self._enforce_write_once(instance)
@@ -260,7 +254,7 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
             instance.fire_event_pre('property-pre-set:' + self.__name__,
                 self.__name__, value)
 
-        instance._property_init(self, value) # pylint: disable=protected-access
+        instance._property_init(self, value)  # pylint: disable=protected-access
 
         if has_oldvalue:
             instance.fire_event('property-set:' + self.__name__, self.__name__,
@@ -268,7 +262,6 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
         else:
             instance.fire_event('property-set:' + self.__name__, self.__name__,
                 value)
-
 
     def __delete__(self, instance):
         self._enforce_write_once(instance)
@@ -292,29 +285,24 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
             instance.fire_event('property-del:' + self.__name__,
                 self.__name__)
 
-
     def __repr__(self):
         default = ' default={!r}'.format(self._default) \
             if self._default is not self._NO_DEFAULT \
             else ''
         return '<{} object at {:#x} name={!r}{}>'.format(
-            self.__class__.__name__, id(self), self.__name__, default) \
-
+            self.__class__.__name__, id(self), self.__name__, default)
 
     def __hash__(self):
         return hash(self.__name__)
 
-
     def __eq__(self, other):
         return isinstance(other, property) and self.__name__ == other.__name__
-
 
     def _enforce_write_once(self, instance):
         if self._write_once and not instance.property_is_default(self):
             raise AttributeError(
                 'property {!r} is write-once and already set'.format(
                     self.__name__))
-
 
     #
     # exceptions
@@ -344,12 +332,11 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
         unwanted property. When someone attempts to load such a property, it
 
         :throws AttributeError: always
-        ''' # pylint: disable=bad-staticmethod-argument,unused-argument
+        '''  # pylint: disable=bad-staticmethod-argument,unused-argument
 
         raise AttributeError(
             'setting {} property on {} instance is forbidden'.format(
                 prop.__name__, self.__class__.__name__))
-
 
     @staticmethod
     def bool(self, prop, value):
@@ -358,7 +345,7 @@ class property(object): # pylint: disable=redefined-builtin,invalid-name
         It accepts (case-insensitive) ``'0'``, ``'no'`` and ``false`` as
         :py:obj:`False` and ``'1'``, ``'yes'`` and ``'true'`` as
         :py:obj:`True`.
-        ''' # pylint: disable=bad-staticmethod-argument,unused-argument
+        '''  # pylint: disable=bad-staticmethod-argument,unused-argument
 
         if isinstance(value, basestring):
             lcvalue = value.lower()
@@ -430,7 +417,7 @@ class PropertyHolder(qubes.events.Emitter):
 
         all_names = set(prop.__name__ for prop in self.property_list())
         for key in list(kwargs):
-            if not key in all_names:
+            if key not in all_names:
                 continue
             propvalues[key] = kwargs.pop(key)
 
@@ -468,7 +455,6 @@ class PropertyHolder(qubes.events.Emitter):
         return sorted(props,
             key=lambda prop: (prop.load_stage, prop.order, prop.__name__))
 
-
     def _property_init(self, prop, value):
         '''Initialise property to a given value, without side effects.
 
@@ -478,7 +464,6 @@ class PropertyHolder(qubes.events.Emitter):
 
         # pylint: disable=protected-access
         setattr(self, self.property_get_def(prop)._attr_name, value)
-
 
     def property_is_default(self, prop):
         '''Check whether property is in it's default value.
@@ -490,13 +475,12 @@ class PropertyHolder(qubes.events.Emitter):
 
         :param qubes.property prop: property object of particular interest
         :rtype: bool
-        ''' # pylint: disable=protected-access
+        '''  # pylint: disable=protected-access
 
         # both property_get_def() and ._attr_name may throw AttributeError,
         # which we don't want to catch
         attrname = self.property_get_def(prop)._attr_name
         return not hasattr(self, attrname)
-
 
     @classmethod
     def property_get_def(cls, prop):
@@ -520,7 +504,6 @@ class PropertyHolder(qubes.events.Emitter):
         raise AttributeError('No property {!r} found in {!r}'.format(
             prop, cls))
 
-
     def load_properties(self, load_stage=None):
         '''Load properties from immediate children of XML node.
 
@@ -537,11 +520,10 @@ class PropertyHolder(qubes.events.Emitter):
             name = node.get('name')
             value = node.get('ref') or node.text
 
-            if not name in all_names:
+            if name not in all_names:
                 continue
 
             setattr(self, name, value)
-
 
     def xml_properties(self, with_defaults=False):
         '''Iterator that yields XML nodes representing set properties.
@@ -550,7 +532,6 @@ class PropertyHolder(qubes.events.Emitter):
             properties which were not set explicite, but have default values \
             filled.
         '''
-
 
         properties = lxml.etree.Element('properties')
 
@@ -575,7 +556,6 @@ class PropertyHolder(qubes.events.Emitter):
             properties.append(element)
 
         return properties
-
 
     # this was clone_attrs
     def clone_properties(self, src, proplist=None):
@@ -602,7 +582,6 @@ class PropertyHolder(qubes.events.Emitter):
                 continue
 
         self.fire_event('clone-properties', src, proplist)
-
 
     def property_require(self, prop, allow_none=False, hard=False):
         '''Complain badly when property is not set.
@@ -631,9 +610,10 @@ class PropertyHolder(qubes.events.Emitter):
                 # pylint: disable=no-member
                 self.log.fatal(msg)
 
+
 # pylint: disable=wrong-import-position
-from qubes.vm import VMProperty
-from qubes.app import Qubes
+from qubes.vm import VMProperty  # NOQA
+from qubes.app import Qubes  # NOQA
 
 __all__ = [
     'Label',
