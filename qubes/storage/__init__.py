@@ -327,8 +327,9 @@ class Storage(object):
         ''' Creates volumes on disk '''
         old_umask = os.umask(0o002)
 
-        for volume in self.vm.volumes.values():
-            self.get_pool(volume).create(volume)
+        with VmCreationManager(self.vm):
+            for volume in self.vm.volumes.values():
+                self.get_pool(volume).create(volume)
 
         os.umask(old_umask)
 
