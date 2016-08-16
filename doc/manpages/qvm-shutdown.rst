@@ -45,13 +45,9 @@ Options
    force operation, even if may damage other VMs (eg. shutdown of network
    provider)
 
-.. option:: --wait
-
-   wait for the VMs to shut down
-
 .. option:: --timeout
 
-   timeout after which domains are killed when using :option:`--wait`
+   timeout after which a domain is killed
 
 Authors
 -------

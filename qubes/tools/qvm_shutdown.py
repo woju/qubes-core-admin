@@ -22,63 +22,91 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-
 ''' Shutdown a qube '''
 
 from __future__ import print_function
 
 import sys
+import thread
 import time
 
 import qubes.config
 import qubes.tools
 
-parser = qubes.tools.QubesArgumentParser(
-    description=__doc__, vmname_nargs='+')
+parser = qubes.tools.QubesArgumentParser(description=__doc__, vmname_nargs='+')
 
-parser.add_argument('--force',
-    action='store_true', default=False,
+parser.add_argument(
+    '--force', action='store_true', default=False,
     help='force operation, even if may damage other VMs (eg. shutdown of'
-        ' network provider)')
+    ' network provider)')
 
-parser.add_argument('--wait',
-    action='store_true', default=False,
-    help='wait for the VMs to shut down')
+parser.add_argument('--timeout', action='store', type=float,
+                    default=qubes.config.defaults['shutdown_counter_max'],
+                    help='timeout after which a domain is killed (default: %d)')
 
-parser.add_argument('--timeout',
-    action='store', type=float,
-    default=qubes.config.defaults['shutdown_counter_max'],
-    help='timeout after which domains are killed when using --wait'
-        ' (default: %d)')
+
+def has_connected_vms(vm):
+    ''' Return `True` if vm has running domains connected to it '''
+    vms = [v for v in vm.connected_vms if not v.is_halted()]
+    return len(vms) > 0
+
+
+def children_vms(domains):
+    ''' Return only domains which are not halted and have no domains connected
+        to them.
+    '''
+    return [vm for vm in domains
+            if not vm.is_halted() and not has_connected_vms(vm)]
+
+
+def validate_dependencies(args):
+    ''' Print errors if domains can not be shutdown because of other domains
+        connected to them. Returns `False` on failure.
+    '''
+    domains = set(args.domains)
+    error = False
+    for vm in domains:
+        connected_vms = set([v for v in vm.connected_vms if not v.is_halted()])
+        if not domains.issuperset(connected_vms):
+            error = True
+            not_specified_domains = connected_vms.difference(domains)
+            names = ", ".join([v.name for v in not_specified_domains])
+            msg = "Can't shutdown domain '{!s}' it " \
+                  "has other domains connected:" \
+                   .format(vm)
+            args.app.log.error(msg + " " + names)
+
+    return not error
+
+
+def shutdown(vm):
+    vm.shutdown()
 
 
 def main(args=None):  # pylint: disable=missing-docstring
     args = parser.parse_args(args)
+    args.domains = [vm for vm in args.domains if not vm.is_halted()]
+    if not validate_dependencies(args):
+        return 2
 
-    for vm in args.domains:
-        if not vm.is_halted():
-            vm.shutdown(force=args.force)
+    children = children_vms(args.domains)
+    waiting_for_shutdown = {}
 
-    if not args.wait:
-        return
+    while children:
+        for vm in children_vms(args.domains):
+            if vm in waiting_for_shutdown:
+                start_time = waiting_for_shutdown[vm]
+                if time.time() - start_time > args.timeout:
+                    args.app.log.error("Timedout waiting for domain '%s', "
+                                       "killing it!" % vm)
+                    vm.kill()
+            else:
+                args.app.log.info('Shutting down {}'.format(vm))
+                thread.start_new_thread(shutdown, (vm, ))
+                waiting_for_shutdown[vm] = time.time()
 
-    timeout = args.timeout
-    current_vms = list(sorted(args.domains))
-    while timeout >= 0:
-        current_vms = [vm for vm in current_vms
-            if vm.get_power_state() != 'Halted']
-        if not current_vms:
-            return 0
-        args.app.log.info('Waiting for shutdown ({}): {}'.format(
-            timeout, ', '.join([str(vm) for vm in current_vms])))
         time.sleep(1)
-        timeout -= 1
-
-    args.app.log.info(
-        'Killing remaining qubes: {}'
-        .format(', '.join([str(vm) for vm in current_vms])))
-    for vm in current_vms:
-        vm.force_shutdown()
+        children = children_vms(args.domains)
 
 
 if __name__ == '__main__':
