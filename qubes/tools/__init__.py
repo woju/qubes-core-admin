@@ -176,7 +176,10 @@ class VmNameAction(QubesAction):
 
     def __call__(self, parser, namespace, values, option_string=None):
         ''' Set ``namespace.vmname`` to ``values`` '''
-        setattr(namespace, self.dest, values)
+        if self.nargs == argparse.OPTIONAL:
+            setattr(namespace, self.dest, [values])
+        else:
+            setattr(namespace, self.dest, values)
 
     def parse_qubes_app(self, parser, namespace):
         assert hasattr(namespace, 'app')
@@ -194,7 +197,8 @@ class VmNameAction(QubesAction):
 
             for vm_name in getattr(namespace, self.dest):
                 try:
-                    namespace.domains += [app.domains[vm_name]]
+                    if self.nargs != argparse.OPTIONAL or vm_name is not None:
+                        namespace.domains += [app.domains[vm_name]]
                 except KeyError:
                     parser.error('no such domain: {!r}'.format(vm_name))
 
