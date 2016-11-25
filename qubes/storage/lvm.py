@@ -438,6 +438,9 @@ def qubes_lvm(cmd, log=logging.getLogger('qube.storage.lvm')):
         lvm_cmd = ["lvextend", "-L%s" % size, cmd[1]]
     else:
         raise NotImplementedError('unsupported action: ' + action)
+    if 'TRAVIS' in os.environ:
+        # old lvm in trusty image used there does not support -k option
+        lvm_cmd = [x for x in lvm_cmd if x != '-kn']
     if os.getuid() != 0:
         cmd = ['sudo', 'lvm'] + lvm_cmd
     else:
