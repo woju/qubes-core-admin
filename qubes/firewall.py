@@ -54,7 +54,7 @@ class RuleChoice(RuleOption):
         super(RuleChoice, self).__init__(value)
         self.allowed_values = \
             [v for k, v in self.__class__.__dict__.items()
-                if not k.startswith('__') and isinstance(v, basestring) and
+                if not k.startswith('__') and isinstance(v, str) and
                    not v.startswith('__')]
         if value not in self.allowed_values:
             raise ValueError(value)
@@ -457,7 +457,7 @@ class Firewall(object):
 
         try:
             old_umask = os.umask(0o002)
-            with open(firewall_conf, 'w') as firewall_xml:
+            with open(firewall_conf, 'wb') as firewall_xml:
                 xml_tree.write(firewall_xml, encoding="UTF-8",
                     pretty_print=True)
             os.umask(old_umask)

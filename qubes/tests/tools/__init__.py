@@ -24,14 +24,14 @@
 
 import sys
 try:
-    import StringIO
-except ImportError:
     from io import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 
 class StdoutBuffer(object):
     def __init__(self):
-        self.stdout = StringIO.StringIO()
+        self.stdout = StringIO()
 
     def __enter__(self):
         sys.stdout = self.stdout

@@ -428,7 +428,7 @@ class VMCollection(object):
         if isinstance(key, int):
             return self._dict[key]
 
-        if isinstance(key, basestring):
+        if isinstance(key, str):
             for vm in self:
                 if vm.name == key:
                     return vm
@@ -783,7 +783,7 @@ class Qubes(qubes.PropertyHolder):
         lxml.etree.ElementTree(self.__xml__()).write(
             fh_new, encoding='utf-8', pretty_print=True)
         fh_new.flush()
-        os.chmod(fh_new.name, 0660)
+        os.chmod(fh_new.name, 0o660)
         os.chown(fh_new.name, -1, grp.getgrnam('qubes').gr_gid)
         os.rename(fh_new.name, self._store)
 

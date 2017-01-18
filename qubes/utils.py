@@ -29,6 +29,7 @@ import random
 import string
 import os
 import re
+import reprlib
 import subprocess
 
 import pkg_resources
@@ -71,6 +72,8 @@ def get_timezone():
 def format_doc(docstring):
     '''Return parsed documentation string, stripping RST markup.
     '''
+
+    return docstring
 
     if not docstring:
         return ''

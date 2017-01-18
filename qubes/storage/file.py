@@ -67,7 +67,7 @@ class FilePool(qubes.storage.Pool):
         return target
 
     def create(self, volume):
-        assert isinstance(volume.size, (int, long)) and volume.size > 0, \
+        assert isinstance(volume.size, int) and volume.size > 0, \
             'Volatile volume size must be > 0'
         if volume._is_origin:
             create_sparse_file(volume.path, volume.size)
@@ -157,7 +157,7 @@ class FilePool(qubes.storage.Pool):
             # TODO: Renaming the old revisions
             new_path = os.path.join(self.dir_path, subdir, new_name)
             if not os.path.exists(new_path):
-                os.mkdir(new_path, 0755)
+                os.mkdir(new_path, 0o755)
             new_volume_path = os.path.join(new_path, self.name + '.img')
             if not volume.backward_comp:
                 os.rename(volume.path, new_volume_path)
@@ -203,7 +203,7 @@ class FilePool(qubes.storage.Pool):
     def reset(self, volume):
         ''' Remove and recreate a volatile volume '''
         assert volume._is_volatile, "Not a volatile volume"
-        assert isinstance(volume.size, (int, long)) and volume.size > 0, \
+        assert isinstance(volume.size, int) and volume.size > 0, \
             'Volatile volume size must be > 0'
 
         _remove_if_exists(volume.path)

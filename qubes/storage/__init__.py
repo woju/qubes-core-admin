@@ -325,7 +325,7 @@ class Storage(object):
 
     def resize(self, volume, size):
         ''' Resizes volume a read-writable volume '''
-        if isinstance(volume, basestring):
+        if isinstance(volume, str):
             volume = self.vm.volumes[volume]
         self.get_pool(volume).resize(volume, size)
         if self.vm.is_running():
@@ -444,7 +444,7 @@ class Storage(object):
 
     def get_pool(self, volume):
         ''' Helper function '''
-        assert isinstance(volume, (Volume, basestring)), \
+        assert isinstance(volume, (Volume, str)), \
             "You need to pass a Volume or pool name as str"
         if isinstance(volume, Volume):
             return self.pools[volume.name]
@@ -474,7 +474,7 @@ class Storage(object):
 
     def export(self, volume):
         ''' Helper function to export volume (pool.export(volume))'''
-        assert isinstance(volume, (Volume, basestring)), \
+        assert isinstance(volume, (Volume, str)), \
             "You need to pass a Volume or pool name as str"
         if isinstance(volume, Volume):
             return self.pools[volume.name].export(volume)

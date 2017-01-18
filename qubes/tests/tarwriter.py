@@ -58,7 +58,7 @@ class TC_00_TarWriter(qubes.tests.QubesTestCase):
             expected_output = (
                 'tar: Removing leading `/\' from member names\n' +
                 expected_output)
-        self.assertEqual(tar_output, expected_output)
+        self.assertEqual(tar_output.decode(), expected_output)
         extracted_path = os.path.join(self.extract_dir,
             expected_name.lstrip('/'))
         with self.assertNotRaises(subprocess.CalledProcessError):

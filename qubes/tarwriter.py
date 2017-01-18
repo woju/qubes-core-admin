@@ -27,6 +27,11 @@ import io
 
 BUF_SIZE = 409600
 
+def stn(s, length, encoding=tarfile.ENCODING, errors='surrogateescape'):
+    try:
+        return tarfile.stn(s, length, encoding, errors)
+    except TypeError:   # py2
+        return tarfile.stn(s, length)
 
 class TarSparseInfo(tarfile.TarInfo):
     def __init__(self, name="", sparsemap=None):
@@ -48,12 +53,12 @@ class TarSparseInfo(tarfile.TarInfo):
 
     def sparse_header_chunk(self, index):
         if index < len(self.sparsemap):
-            return ''.join([
+            return b''.join([
                 tarfile.itn(self.sparsemap[index][0], 12, tarfile.GNU_FORMAT),
                 tarfile.itn(self.sparsemap[index][1], 12, tarfile.GNU_FORMAT),
             ])
         else:
-            return '\0' * 12 * 2
+            return b'\0' * 12 * 2
 
     def get_gnu_header(self):
         '''Part placed in 'prefix' field of posix header'''
@@ -62,20 +67,23 @@ class TarSparseInfo(tarfile.TarInfo):
             tarfile.itn(self.mtime, 12, tarfile.GNU_FORMAT),  # atime
             tarfile.itn(self.mtime, 12, tarfile.GNU_FORMAT),  # ctime
             tarfile.itn(0, 12, tarfile.GNU_FORMAT),  # offset
-            tarfile.stn('', 4),  # longnames
-            '\0',  # unused_pad2
+            stn('', 4),  # longnames
+            b'\0',  # unused_pad2
         ]
         parts += [self.sparse_header_chunk(i) for i in range(4)]
         parts += [
-            '\1' if len(self.sparsemap) > 4 else '\0',  # isextended
+            b'\1' if len(self.sparsemap) > 4 else b'\0',  # isextended
             tarfile.itn(self.realsize, 12, tarfile.GNU_FORMAT),  # realsize
         ]
-        return ''.join(parts)
+        return b''.join(parts)
 
-    def get_info(self, encoding, errors):
-        info = super(TarSparseInfo, self).get_info(encoding, errors)
+    def get_info(self, encoding=tarfile.ENCODING, errors='surrogateescape'):
+        try:
+            info = super(TarSparseInfo, self).get_info()
+        except TypeError:   # py2
+            info = super(TarSparseInfo, self).get_info(encoding, errors)
         # place GNU extension into
-        info['prefix'] = self.get_gnu_header()
+        info['prefix'] = self.get_gnu_header().decode(encoding)
         return info
 
     def tobuf(self, format=tarfile.DEFAULT_FORMAT, encoding=tarfile.ENCODING,
@@ -83,16 +91,19 @@ class TarSparseInfo(tarfile.TarInfo):
         # pylint: disable=redefined-builtin
         header_buf = super(TarSparseInfo, self).tobuf(format, encoding, errors)
         if len(self.sparsemap) > 4:
-            return header_buf + ''.join(self.create_ext_sparse_headers())
+            return header_buf + b''.join(self.create_ext_sparse_headers())
         else:
             return header_buf
 
     def create_ext_sparse_headers(self):
         for ext_hdr in range(4, len(self.sparsemap), 21):
-            sparse_parts = [self.sparse_header_chunk(i) for i in
-                range(ext_hdr, ext_hdr+21)]
-            sparse_parts += '\1' if ext_hdr+21 < len(self.sparsemap) else '\0'
-            yield tarfile.stn(''.join(sparse_parts), 512)
+            sparse_parts = [
+                self.sparse_header_chunk(i).decode(
+                    tarfile.ENCODING, 'surrogateescape')
+                for i in range(ext_hdr, ext_hdr+21)]
+            sparse_parts.append(
+                '\1' if ext_hdr+21 < len(self.sparsemap) else '\0')
+            yield stn(''.join(sparse_parts), 512)
 
 
 def get_sparse_map(input_file):
@@ -161,8 +172,8 @@ def copy_sparse_data(input_stream, output_stream, sparse_map):
 
 def finalize(output):
     '''Write EOF blocks'''
-    output.write('\0' * 512)
-    output.write('\0' * 512)
+    output.write(b'\0' * 512)
+    output.write(b'\0' * 512)
 
 def main(args=None):
     parser = argparse.ArgumentParser()

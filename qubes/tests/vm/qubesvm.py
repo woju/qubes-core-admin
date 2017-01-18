@@ -244,7 +244,7 @@ class TC_90_QubesVM(QubesVMTestsMixin,qubes.tests.QubesTestCase):
 
     def test_110_name(self):
         vm = self.get_vm()
-        self.assertIsInstance(vm.name, basestring)
+        self.assertIsInstance(vm.name, str)
 
     def test_120_uuid(self):
         my_uuid = uuid.uuid4()

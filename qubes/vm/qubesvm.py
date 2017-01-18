@@ -79,7 +79,7 @@ def _setter_qid(self, prop, value):
 
 def _setter_name(self, prop, value):
     ''' Helper for setting the domain name '''
-    if not isinstance(value, basestring):
+    if not isinstance(value, str):
         raise TypeError('{} value must be string, {!r} found'.format(
             prop.__name__, type(value).__name__))
     if len(value) > 31:
@@ -135,7 +135,7 @@ def _setter_label(self, prop, value):
     # pylint: disable=unused-argument
     if isinstance(value, qubes.Label):
         return value
-    if isinstance(value, basestring) and value.startswith('label-'):
+    if isinstance(value, str) and value.startswith('label-'):
         return self.app.labels[int(value.split('-', 1)[1])]
 
     return self.app.get_label(value)
@@ -672,6 +672,9 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
 
     def __hash__(self):
         return self.qid
+
+    def __lt__(self, other):
+        return self.name < other.name
 
     def __xml__(self):
         element = super(QubesVM, self).__xml__()

@@ -530,9 +530,9 @@ def print_table(table):
     if sys.stdout != sys.__stdout__:
         p = subprocess.Popen(cmd + ['-c', '80'], stdin=subprocess.PIPE,
             stdout=subprocess.PIPE)
-        p.stdin.write(text_table)
+        p.stdin.write(text_table.encode())
         (out, _) = p.communicate()
-        sys.stdout.write(out)
+        sys.stdout.write(out.decode())
     else:
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-        p.communicate(text_table)
+        p.communicate(text_table.encode())
