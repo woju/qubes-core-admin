@@ -127,7 +127,7 @@ class FilePool(qubes.storage.Pool):
 
         p = subprocess.Popen(['sudo', 'losetup', '--associated', volume.path],
                              stdout=subprocess.PIPE)
-        result = p.communicate()
+        result = p.communicate().decode()
 
         m = re.match(r'^(/dev/loop\d+):\s', result[0])
         if m is not None:
