@@ -210,6 +210,7 @@ fi
 /usr/bin/qubes-*
 /usr/bin/qmemmand
 /usr/bin/qubesd*
+/usr/bin/qrexec-policy
 
 %dir %{python3_sitelib}/qubes-*.egg-info
 %{python3_sitelib}/qubes-*.egg-info/*
@@ -378,6 +379,7 @@ fi
 %dir %{python3_sitelib}/qubespolicy/__pycache__
 %{python3_sitelib}/qubespolicy/__pycache__/*
 %{python3_sitelib}/qubespolicy/__init__.py
+%{python3_sitelib}/qubespolicy/cli.py
 
 /usr/lib/qubes/unbind-pci-device.sh
 /usr/lib/qubes/cleanup-dispvms
