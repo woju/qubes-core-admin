@@ -40,6 +40,8 @@ import warnings
 import grp
 
 import errno
+
+import functools
 import lxml
 import libvirt  # pylint: disable=import-error
 
@@ -823,12 +825,15 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
                     await self.netvm.start(start_guid=start_guid,
                         notify_function=notify_function)
 
+        # TODO: lock
+
+        qmemman_client = await asyncio.get_event_loop().run_in_executor(None,
+            self.request_memory, mem_required)
+
         await asyncio.get_event_loop().run_in_executor(None,
             self.storage.start)
         self._update_libvirt_domain()
 
-        qmemman_client = await asyncio.get_event_loop().run_in_executor(None,
-            self.request_memory, mem_required)
         try:
             self.libvirt_domain.createWithFlags(libvirt.VIR_DOMAIN_START_PAUSED)
         except:
@@ -1220,12 +1225,13 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
         self.log.info('Waiting for qubes-session')
 
         # Note : User root is redefined to SYSTEM in the Windows agent code
-        p = await asyncio.get_event_loop().run_in_executor(
+        p = await asyncio.get_event_loop().run_in_executor(None,
             functools.partial(self.run, 'QUBESRPC qubes.WaitForSession none',
                 user='root', passio_popen=True, gui=False, wait=True))
-        await asyncio.get_event_loop().run_in_executor(functools.partial(
-            p.communicate, input=self.default_user.encode()))
+        await asyncio.get_event_loop().run_in_executor(None,
+            functools.partial(p.communicate, input=self.default_user.encode()))
         self.have_session.set()
+        self.fire_event('domain-has-session')
 
     def create_on_disk(self, pool=None, pools=None):
         '''Create files needed for VM.
