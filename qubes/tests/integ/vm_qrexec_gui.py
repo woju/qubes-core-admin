@@ -24,6 +24,7 @@ from distutils import spawn
 
 import multiprocessing
 import os
+import shlex
 import subprocess
 import unittest
 import time
@@ -57,6 +58,16 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
         self.testvm2.create_on_disk()
         self.app.save()
 
+    def create_local_file(self, filename, content, mode='w'):
+        with open(filename, mode) as file:
+            file.write(content)
+        self.addCleanup(os.unlink, filename)
+
+    def create_remote_file(self, vm, filename, content):
+        self.loop.run_until_complete(vm.run_for_stdio(
+            'cat > {}'.format(shlex.quote(filename)),
+            user='root', input=content.encode('utf-8')))
+
     def test_000_start_shutdown(self):
         self.testvm1.start()
         self.assertEquals(self.testvm1.get_power_state(), "Running")
@@ -76,7 +87,7 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
     def test_010_run_xterm(self):
         self.testvm1.start()
         self.assertEquals(self.testvm1.get_power_state(), "Running")
-        self.testvm1.run("xterm")
+        self.loop.run_until_complete(self.testvm1.run('xterm'))
         wait_count = 0
         title = 'user@{}'.format(self.testvm1.name)
         if self.template.count("whonix"):
@@ -112,7 +123,7 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
             self.skipTest("Minimal template doesn't have 'gnome-terminal'")
         self.testvm1.start()
         self.assertEquals(self.testvm1.get_power_state(), "Running")
-        self.testvm1.run("gnome-terminal")
+        self.loop.run_until_complete(self.testvm1.run('gnome-terminal'))
         title = 'user@{}'.format(self.testvm1.name)
         if self.template.count("whonix"):
             title = 'user@host'
@@ -151,10 +162,15 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
         # Debian has it different...
         xterm_desktop_path_debian = \
             "/usr/share/applications/debian-xterm.desktop"
-        if self.testvm1.run("test -r {}".format(xterm_desktop_path_debian),
-                            wait=True) == 0:
+        try:
+            self.loop.run_until_complete(self.testvm1.run_for_stdio(
+                'test -r {}'.format(xterm_desktop_path_debian)))
+        except subprocess.CalledProcessError:
+            pass
+        else:
             xterm_desktop_path = xterm_desktop_path_debian
-        self.testvm1.run("qubes-desktop-run {}".format(xterm_desktop_path))
+        self.loop.run_until_complete(
+            self.testvm1.run('qubes-desktop-run {}'.format(xterm_desktop_path)))
         title = 'user@{}'.format(self.testvm1.name)
         if self.template.count("whonix"):
             title = 'user@host'
@@ -185,137 +201,106 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
 
     def test_050_qrexec_simple_eof(self):
         """Test for data and EOF transmission dom0->VM"""
-        result = multiprocessing.Value('i', 0)
 
-        def run(self, result):
-            p = self.testvm1.run("cat", passio_popen=True,
-                                 passio_stderr=True)
+        # XXX is this still correct? this is no longer simple qrexec,
+        # but qubes.VMShell
 
-            (stdout, stderr) = p.communicate(TEST_DATA)
-            if stdout != TEST_DATA:
-                result.value = 1
-            if len(stderr) > 0:
-                result.value = 2
+        self.loop.run_until_complete(self.testvm1.start())
+        try:
+            (stdout, stderr) = self.loop.run_until_complete(asyncio.wait_for(
+                self.testvm1.run_for_stdio('cat', input=TEST_DATA),
+                timeout=10))
+        except asyncio.TimeoutError:
+            self.fail(
+                "Timeout, probably EOF wasn't transferred to the VM process")
 
-        self.testvm1.start()
-
-        t = multiprocessing.Process(target=run, args=(self, result))
-        t.start()
-        t.join(timeout=10)
-        if t.is_alive():
-            t.terminate()
-            self.fail("Timeout, probably EOF wasn't transferred to the VM "
-                      "process")
-        if result.value == 1:
-            self.fail("Received data differs from what was sent")
-        elif result.value == 2:
-            self.fail("Some data was printed to stderr")
+        self.assertEquals(stdout, TEST_DATA,
+            'Received data differs from what was sent')
+        self.assertFalse(stderr,
+            'Some data was printed to stderr')
 
     def test_051_qrexec_simple_eof_reverse(self):
         """Test for EOF transmission VM->dom0"""
-        result = multiprocessing.Value('i', 0)
 
-        def run(self, result):
-            p = self.testvm1.run("echo test; exec >&-; cat > /dev/null",
-                                 passio_popen=True, passio_stderr=True)
+        @asyncio.coroutine
+        def run(self):
+            p = yield from self.testvm1.run(
+                    'echo test; exec >&-; cat > /dev/null')
+
             # this will hang on test failure
-            stdout = p.stdout.read()
+            stdout = yield from p.stdout.read()
+
             p.stdin.write(TEST_DATA)
+            yield from p.stdin.drain()
             p.stdin.close()
-            if stdout.strip() != b"test":
-                result.value = 1
+            self.assertEquals(stdout.strip(), 'test',
+                'Received data differs from what was expected')
             # this may hang in some buggy cases
-            elif len(p.stderr.read()) > 0:
-                result.value = 2
-            elif p.poll() is None:
-                time.sleep(1)
-                if p.poll() is None:
-                    result.value = 3
+            self.assertFalse((yield from p.stderr.read()),
+                'Some data was printed to stderr')
 
-        self.testvm1.start()
+            try:
+                yield from asyncio.wait_for(p.wait(), timeout=1)
+            except asyncio.TimeoutError:
+                self.fail("Timeout, "
+                    "probably EOF wasn't transferred from the VM process")
 
-        t = multiprocessing.Process(target=run, args=(self, result))
-        t.start()
-        t.join(timeout=10)
-        if t.is_alive():
-            t.terminate()
-            self.fail("Timeout, probably EOF wasn't transferred from the VM "
-                      "process")
-        if result.value == 1:
-            self.fail("Received data differs from what was expected")
-        elif result.value == 2:
-            self.fail("Some data was printed to stderr")
-        elif result.value == 3:
-            self.fail("VM proceess didn't terminated on EOF")
+        self.loop.run_until_complete(self.testvm1.start())
+        self.loop.run_until_complete(run(self))
 
     def test_052_qrexec_vm_service_eof(self):
         """Test for EOF transmission VM(src)->VM(dst)"""
-        result = multiprocessing.Value('i', 0)
 
-        def run(self, result):
-            p = self.testvm1.run("/usr/lib/qubes/qrexec-client-vm %s test.EOF "
-                                 "/bin/sh -c 'echo test; exec >&-; cat "
-                                 ">&$SAVED_FD_1'" % self.testvm2.name,
-                                 passio_popen=True)
-            (stdout, stderr) = p.communicate()
-            if stdout != b"test\n":
-                result.value = 1
+        self.loop.run_until_complete(asyncio.wait([
+            self.testvm1.start(),
+            self.testvm2.start()]))
+        self.loop.run_until_complete(self.testvm2.run_for_stdio(
+            'cat > /etc/qubes-rpc/test.EOF',
+            user='root',
+            input=b'/bin/cat'))
 
-        self.testvm1.start()
-        self.testvm2.start()
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.EOF", user="root",
-                             passio_popen=True)
-        p.stdin.write(b"/bin/cat")
-        p.stdin.close()
-        p.wait()
-        policy = open("/etc/qubes-rpc/policy/test.EOF", "w")
-        policy.write("%s %s allow" % (self.testvm1.name, self.testvm2.name))
-        policy.close()
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.EOF")
+        self.create_local_file('/etc/qubes-rpc/policy/test.EOF',
+            '{} {} allow'.format(self.testvm1.name, self.testvm2.name))
 
-        t = multiprocessing.Process(target=run, args=(self, result))
-        t.start()
-        t.join(timeout=10)
-        if t.is_alive():
-            t.terminate()
+        try:
+            (stdout, _) = self.loop.run_until_complete(asyncio.wait_for(
+                self.testvm1.run_for_stdio('''\
+                    /usr/lib/qubes/qrexec-client-vm {} test.EOF \
+                        /bin/sh -c 'echo test; exec >&-; cat >&$SAVED_FD_1'
+                '''.format(self.testvm2.name)),
+                timeout=10))
+
+        except asyncio.TimeoutError:
             self.fail("Timeout, probably EOF wasn't transferred")
-        if result.value == 1:
-            self.fail("Received data differs from what was expected")
+
+        self.assertEquals(stdout, b'test',
+            'Received data differs from what was expected')
 
     @unittest.expectedFailure
     def test_053_qrexec_vm_service_eof_reverse(self):
         """Test for EOF transmission VM(src)<-VM(dst)"""
-        result = multiprocessing.Value('i', 0)
 
-        def run(self, result):
-            p = self.testvm1.run("/usr/lib/qubes/qrexec-client-vm %s test.EOF "
-                                 "/bin/sh -c 'cat >&$SAVED_FD_1'"
-                                 % self.testvm2.name,
-                                 passio_popen=True)
-            (stdout, stderr) = p.communicate()
-            if stdout != b"test\n":
-                result.value = 1
+        self.loop.run_until_complete(asyncio.wait([
+            self.testvm1.start(),
+            self.testvm2.start()]))
+        self.create_remote_file(testvm2, '/etc/qubes-rpc/test.EOF',
+                'echo test; exec >&-; cat >/dev/null')
+        self.create_local_file('/etc/qubes-rpc/policy/test.EOF',
+            '{} {} allow'.format(self.testvm1.name, self.testvm2.name))
 
-        self.testvm1.start()
-        self.testvm2.start()
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.EOF", user="root",
-                             passio_popen=True)
-        p.stdin.write(b"echo test; exec >&-; cat >/dev/null")
-        p.stdin.close()
-        p.wait()
-        policy = open("/etc/qubes-rpc/policy/test.EOF", "w")
-        policy.write("%s %s allow" % (self.testvm1.name, self.testvm2.name))
-        policy.close()
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.EOF")
+        try:
+            (stdout, _) = self.loop.run_until_complete(asyncio.wait_for(
+                self.testvm1.run_for_stdio('''\
+                    /usr/lib/qubes/qrexec-client-vm %s test.EOF \
+                        /bin/sh -c 'cat >&$SAVED_FD_1'
+                    '''.format(self.testvm2.name))
+                timeout=10))
 
-        t = multiprocessing.Process(target=run, args=(self, result))
-        t.start()
-        t.join(timeout=10)
-        if t.is_alive():
-            t.terminate()
+        except asyncio.TimeoutError:
             self.fail("Timeout, probably EOF wasn't transferred")
-        if result.value == 1:
-            self.fail("Received data differs from what was expected")
+
+        self.assertEquals(stdout, b'test',
+            'Received data differs from what was expected')
 
     def test_055_qrexec_dom0_service_abort(self):
         """
@@ -327,78 +312,53 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
         its stdout - otherwise such service might hang on write(2) call.
         """
 
-        def run (src):
-            p = src.run("/usr/lib/qubes/qrexec-client-vm dom0 "
-                                 "test.Abort /bin/cat /dev/zero",
-                                 passio_popen=True)
+        self.loop.run_until_complete(self.testvm1.start())
+        self.create_local_file('/etc/qubes-rpc/test.Abort',
+            'sleep 1')
+        self.create_local_file('/etc/qubes-rpc/policy/test.Abort',
+            '{} dom0 allow'.format(self.testvm1.name))
 
-            p.communicate()
-            p.wait()
-
-        self.testvm1.start()
-        service = open("/etc/qubes-rpc/test.Abort", "w")
-        service.write("sleep 1")
-        service.close()
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/test.Abort")
-        policy = open("/etc/qubes-rpc/policy/test.Abort", "w")
-        policy.write("%s dom0 allow" % (self.testvm1.name))
-        policy.close()
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.Abort")
-
-        t = multiprocessing.Process(target=run, args=(self.testvm1,))
-        t.start()
-        t.join(timeout=10)
-        if t.is_alive():
-            t.terminate()
+        try:
+            (stdout, _) = self.loop.run_until_complete(asyncio.wait_for(
+                self.testvm1.run_for_stdio('''\
+                    /usr/lib/qubes/qrexec-client-vm dom0 test.Abort \
+                        /bin/cat /dev/zero'''),
+                timeout=10))
+        except asyncio.TimeoutError:
             self.fail("Timeout, probably stdout wasn't closed")
 
-
     def test_060_qrexec_exit_code_dom0(self):
-        self.testvm1.start()
-
-        p = self.testvm1.run("exit 0", passio_popen=True)
-        p.wait()
-        self.assertEqual(0, p.returncode)
-
-        p = self.testvm1.run("exit 3", passio_popen=True)
-        p.wait()
-        self.assertEqual(3, p.returncode)
+        self.loop.run_until_complete(self.testvm1.start())
+        self.loop.run_until_complete(self.testvm1.run_for_stdio('exit 0'))
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.loop.run_until_complete(self.testvm1.run_for_stdio('exit 3'))
 
     @unittest.expectedFailure
     def test_065_qrexec_exit_code_vm(self):
-        self.testvm1.start()
-        self.testvm2.start()
+        self.loop.run_until_complete(asyncio.wait([
+            self.testvm1.start(),
+            self.testvm2.start()]))
 
-        policy = open("/etc/qubes-rpc/policy/test.Retcode", "w")
-        policy.write("%s %s allow" % (self.testvm1.name, self.testvm2.name))
-        policy.close()
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.Retcode")
+        self.create_local_file('/etc/qubes-rpc/policy/test.Retcode',
+            '{} {} allow'.format(self.testvm1.name, self.testvm2.name))
 
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.Retcode", user="root",
-                             passio_popen=True)
-        p.stdin.write(b"exit 0")
-        p.stdin.close()
-        p.wait()
+        self.create_remote_file(testvm2, '/etc/qubes-rpc/test.Retcode',
+            'exit 0')
+        (stdout, stderr) = self.loop.run_until_complete(
+            self.testvm1.run_for_stdio('''\
+                /usr/lib/qubes/qrexec-client-vm {} test.Retcode \
+                    /bin/sh -c 'cat >/dev/null';
+                    echo $?'''.format(self.testvm1.name)))
+        self.assertEqual(stdout, b'0\n')
 
-        p = self.testvm1.run("/usr/lib/qubes/qrexec-client-vm %s test.Retcode "
-                             "/bin/sh -c 'cat >/dev/null'; echo $?"
-                             % self.testvm1.name,
-                             passio_popen=True)
-        (stdout, stderr) = p.communicate()
-        self.assertEqual(stdout, b"0\n")
-
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.Retcode", user="root",
-                             passio_popen=True)
-        p.stdin.write(b"exit 3")
-        p.stdin.close()
-        p.wait()
-
-        p = self.testvm1.run("/usr/lib/qubes/qrexec-client-vm %s test.Retcode "
-                             "/bin/sh -c 'cat >/dev/null'; echo $?"
-                             % self.testvm1.name,
-                             passio_popen=True)
-        (stdout, stderr) = p.communicate()
-        self.assertEqual(stdout, b"3\n")
+        self.create_remote_file(testvm2, '/etc/qubes-rpc/test.Retcode',
+            'exit 3')
+        (stdout, stderr) = self.loop.run_until_complete(
+            self.testvm1.run_for_stdio('''\
+                /usr/lib/qubes/qrexec-client-vm {} test.Retcode \
+                    /bin/sh -c 'cat >/dev/null';
+                    echo $?'''.format(self.testvm1.name)))
+        self.assertEqual(stdout, b'3\n')
 
     def test_070_qrexec_vm_simultaneous_write(self):
         """Test for simultaneous write in VM(src)->VM(dst) connection
@@ -411,53 +371,47 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
             There was a bug where remote side was waiting on write(2) and not
             handling anything else.
         """
-        result = multiprocessing.Value('i', -1)
 
         def run(self):
-            p = self.testvm1.run(
-                "/usr/lib/qubes/qrexec-client-vm %s test.write "
-                "/bin/sh -c '"
-                # first write a lot of data to fill all the buffers
-                "dd if=/dev/zero bs=993 count=10000 iflag=fullblock & "
-                # then after some time start reading
-                "sleep 1; "
-                "dd of=/dev/null bs=993 count=10000 iflag=fullblock; "
-                "wait"
-                "'" % self.testvm2.name, passio_popen=True)
+            # first write a lot of data to fill all the buffers
+            # then after some time start reading
             p.communicate()
             result.value = p.returncode
 
-        self.testvm1.start()
-        self.testvm2.start()
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.write", user="root",
-                             passio_popen=True)
-        # first write a lot of data
-        p.stdin.write(b"dd if=/dev/zero bs=993 count=10000 iflag=fullblock\n")
-        # and only then read something
-        p.stdin.write(b"dd of=/dev/null bs=993 count=10000 iflag=fullblock\n")
-        p.stdin.close()
-        p.wait()
-        policy = open("/etc/qubes-rpc/policy/test.write", "w")
-        policy.write("%s %s allow" % (self.testvm1.name, self.testvm2.name))
-        policy.close()
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.write")
+        self.loop.run_until_complete(asyncio.wait([
+            self.testvm1.start(),
+            self.testvm2.start()]))
 
-        t = multiprocessing.Process(target=run, args=(self,))
-        t.start()
-        t.join(timeout=10)
-        if t.is_alive():
-            t.terminate()
-            self.fail("Timeout, probably deadlock")
-        self.assertEqual(result.value, 0, "Service call failed")
+        self.create_remote_file(testvm2, '/etc/qubes-rpc/test.write', '''\
+            # first write a lot of data
+            dd if=/dev/zero bs=993 count=10000 iflag=fullblock
+            # and only then read something
+            dd of=/dev/null bs=993 count=10000 iflag=fullblock
+            ''')
+        self.create_local_file('/etc/qubes-rpc/policy/test.write',
+            '{} {} allow'.format(self.testvm1.name, self.testvm2.name))
 
+        try:
+            self.loop.run_until_complete(asyncio.wait_for(
+                self.testvm1.run_for_stdio('''\
+                    /usr/lib/qubes/qrexec-client-vm {} test.write /bin/sh -c '
+                        dd if=/dev/zero bs=993 count=10000 iflag=fullblock &
+                        sleep 1;
+                        dd of=/dev/null bs=993 count=10000 iflag=fullblock;
+                        wait'
+                    '''.format(self.testvm2.name)), timeout=10))
+        except subprocess.CalledProcessError:
+            self.fail('Service call failed')
+        except asyncio.TimeoutError:
+            self.fail('Timeout, probably deadlock')
+
+    @unittest.skip('localcmd= argument went away')
     def test_071_qrexec_dom0_simultaneous_write(self):
         """Test for simultaneous write in dom0(src)->VM(dst) connection
 
             Similar to test_070_qrexec_vm_simultaneous_write, but with dom0
             as a source.
         """
-        result = multiprocessing.Value('i', -1)
-
         def run(self):
             result.value = self.testvm2.run_service(
                 "test.write", localcmd="/bin/sh -c '"
@@ -469,19 +423,14 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
                 "wait"
                 "'")
 
-        self.testvm2.start()
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.write", user="root",
-                             passio_popen=True)
-        # first write a lot of data
-        p.stdin.write(b"dd if=/dev/zero bs=993 count=10000 iflag=fullblock\n")
-        # and only then read something
-        p.stdin.write(b"dd of=/dev/null bs=993 count=10000 iflag=fullblock\n")
-        p.stdin.close()
-        p.wait()
-        policy = open("/etc/qubes-rpc/policy/test.write", "w")
-        policy.write("%s %s allow" % (self.testvm1.name, self.testvm2.name))
-        policy.close()
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.write")
+        self.create_remote_file(testvm2, '/etc/qubes-rpc/test.write', '''\
+            # first write a lot of data
+            dd if=/dev/zero bs=993 count=10000 iflag=fullblock
+            # and only then read something
+            dd of=/dev/null bs=993 count=10000 iflag=fullblock
+            ''')
+        self.create_local_file('/etc/qubes-rpc/policy/test.write',
+            '{} {} allow'.format(self.testvm1.name, self.testvm2.name))
 
         t = multiprocessing.Process(target=run, args=(self,))
         t.start()
@@ -491,6 +440,7 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
             self.fail("Timeout, probably deadlock")
         self.assertEqual(result.value, 0, "Service call failed")
 
+    @unittest.skip('localcmd= argument went away')
     def test_072_qrexec_to_dom0_simultaneous_write(self):
         """Test for simultaneous write in dom0(src)<-VM(dst) connection
 
@@ -534,70 +484,59 @@ class TC_00_AppVMMixin(qubes.tests.SystemTestsMixin):
 
     def test_080_qrexec_service_argument_allow_default(self):
         """Qrexec service call with argument"""
-        self.testvm1.start()
-        self.testvm2.start()
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.Argument", user="root",
-                             passio_popen=True)
-        p.communicate(b"/bin/echo $1")
 
-        with open("/etc/qubes-rpc/policy/test.Argument", "w") as policy:
-            policy.write("%s %s allow" % (self.testvm1.name, self.testvm2.name))
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.Argument")
+        self.loop.run_until_complete(asyncio.wait([
+            self.testvm1.start(),
+            self.testvm2.start()]))
 
-        p = self.testvm1.run("/usr/lib/qubes/qrexec-client-vm {} "
-                             "test.Argument+argument".format(self.testvm2.name),
-                             passio_popen=True)
-        (stdout, stderr) = p.communicate()
+        self.create_remote_file(testvm2, '/etc/qubes-rpc/test.Argument',
+            '/usr/bin/printf %s "$1"')
+        self.create_local_file('/etc/qubes-rpc/policy/test.Argument',
+            '{} {} allow'.format(self.testvm1.name, self.testvm2.name))
+
+        (stdout, stderr) = self.loop.run_until_complete(self.testvm1.run(
+            '/usr/lib/qubes/qrexec-client-vm {} test.Argument+argument'.format(
+                self.testvm2.name))
         self.assertEqual(stdout, b"argument\n")
 
     def test_081_qrexec_service_argument_allow_specific(self):
         """Qrexec service call with argument - allow only specific value"""
-        self.testvm1.start()
-        self.testvm2.start()
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.Argument", user="root",
-                             passio_popen=True)
-        p.communicate(b"/bin/echo $1")
 
-        with open("/etc/qubes-rpc/policy/test.Argument", "w") as policy:
-            policy.write("$anyvm $anyvm deny")
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.Argument")
+        self.loop.run_until_complete(asyncio.wait([
+            self.testvm1.start(),
+            self.testvm2.start()]))
 
-        with open("/etc/qubes-rpc/policy/test.Argument+argument", "w") as \
-                policy:
-            policy.write("%s %s allow" % (self.testvm1.name, self.testvm2.name))
-        self.addCleanup(os.unlink,
-            "/etc/qubes-rpc/policy/test.Argument+argument")
+        self.create_remote_file(testvm2, '/etc/qubes-rpc/test.Argument',
+            '/usr/bin/printf %s "$1"')
 
-        p = self.testvm1.run("/usr/lib/qubes/qrexec-client-vm {} "
-                             "test.Argument+argument".format(self.testvm2.name),
-                             passio_popen=True)
-        (stdout, stderr) = p.communicate()
+        self.create_local_file('/etc/qubes-rpc/policy/test.Argument',
+            '$anyvm $anyvm deny')
+        self.create_local_file('/etc/qubes-rpc/policy/test.Argument+argument',
+            '{} {} allow'.format(self.testvm1.name, self.testvm2.name))
+
+        (stdout, stderr) = self.loop.run_until_complete(self.testvm1.run(
+            '/usr/lib/qubes/qrexec-client-vm {} test.Argument+argument'.format(
+                self.testvm2.name))
         self.assertEqual(stdout, b"argument\n")
 
     def test_082_qrexec_service_argument_deny_specific(self):
         """Qrexec service call with argument - deny specific value"""
-        self.testvm1.start()
-        self.testvm2.start()
-        p = self.testvm2.run("cat > /etc/qubes-rpc/test.Argument", user="root",
-                             passio_popen=True)
-        p.communicate(b"/bin/echo $1")
+        self.loop.run_until_complete(asyncio.wait([
+            self.testvm1.start(),
+            self.testvm2.start()]))
 
-        with open("/etc/qubes-rpc/policy/test.Argument", "w") as policy:
-            policy.write("$anyvm $anyvm allow")
-        self.addCleanup(os.unlink, "/etc/qubes-rpc/policy/test.Argument")
+        self.create_remote_file(testvm2, '/etc/qubes-rpc/test.Argument',
+            '/usr/bin/printf %s "$1"')
+        self.create_local_file('/etc/qubes-rpc/policy/test.Argument',
+            '$anyvm $anyvm allow')
+        self.create_local_file('/etc/qubes-rpc/policy/test.Argument+argument',
+            '{} {} deny'.format(self.testvm1.name, self.testvm2.name))
 
-        with open("/etc/qubes-rpc/policy/test.Argument+argument", "w") as \
-                policy:
-            policy.write("%s %s deny" % (self.testvm1.name, self.testvm2.name))
-        self.addCleanup(os.unlink,
-            "/etc/qubes-rpc/policy/test.Argument+argument")
-
-        p = self.testvm1.run("/usr/lib/qubes/qrexec-client-vm {} "
-                             "test.Argument+argument".format(self.testvm2.name),
-                             passio_popen=True)
-        (stdout, stderr) = p.communicate()
-        self.assertEqual(stdout, b"")
-        self.assertEqual(p.returncode, 1, "Service request should be denied")
+        with self.assertRaises(subprocess.CalledProcessError,
+                'Service request should be denied'):
+            self.loop.run_until_complete(
+                self.testvm1.run('/usr/lib/qubes/qrexec-client-vm {} '
+                    'test.Argument+argument'.format(self.testvm2.name))
 
     def test_083_qrexec_service_argument_specific_implementation(self):
         """Qrexec service call with argument - argument specific

@@ -459,8 +459,8 @@ class TC_30_Gui_daemon(qubes.tests.SystemTestsMixin, qubes.tests.QubesTestCase):
         testvm2.start()
 
         window_title = 'user@{}'.format(testvm1.name)
-        testvm1.run('zenity --text-info --editable --title={}'.format(
-            window_title))
+        self.loop.run_until_complete(testvm1.run(
+            'zenity --text-info --editable --title={}'.format(window_title)))
 
         self.wait_for_window(window_title)
         time.sleep(0.5)
@@ -491,17 +491,17 @@ class TC_30_Gui_daemon(qubes.tests.SystemTestsMixin, qubes.tests.QubesTestCase):
 
         # Then paste it to the other window
         window_title = 'user@{}'.format(testvm2.name)
-        p = testvm2.run('zenity --entry --title={} > test.txt'.format(
-                        window_title), passio_popen=True)
+        p = self.loop.run_until_complete(testvm2.run(
+            'zenity --entry --title={} > test.txt'.format(window_title))
         self.wait_for_window(window_title)
 
         subprocess.check_call(['xdotool', 'key', '--delay', '100',
                                'ctrl+shift+v', 'ctrl+v', 'Return'])
-        p.wait()
+        self.loop.run_until_complete(p.wait())
 
         # And compare the result
-        (test_output, _) = testvm2.run('cat test.txt',
-                                       passio_popen=True).communicate()
+        (test_output, _) = self.loop.run_until_complete(
+            testvm2.run_for_stdio('cat test.txt'))
         self.assertEquals(test_string, test_output.strip().decode('ascii'))
 
         clipboard_content = \
@@ -537,10 +537,9 @@ class TC_05_StandaloneVM(qubes.tests.SystemTestsMixin, qubes.tests.QubesTestCase
         testvm1.storage.resize(testvm1.volumes['root'], 20 * 1024 ** 3)
         self.assertEquals(testvm1.volumes['root'].size, 20 * 1024 ** 3)
         testvm1.start()
-        p = testvm1.run('df --output=size /|tail -n 1',
-                        passio_popen=True)
         # new_size in 1k-blocks
-        (new_size, _) = p.communicate()
+        (new_size, _) = self.loop.run_until_complete(
+            testvm1.run_for_stdio('df --output=size /|tail -n 1')
         # some safety margin for FS metadata
         self.assertGreater(int(new_size.strip()), 19 * 1024 ** 2)
 

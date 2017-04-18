@@ -170,26 +170,28 @@ Test package
         return pkg_path
 
     def send_pkg(self, filename):
-        p = self.updatevm.run('mkdir -p /tmp/repo; cat > /tmp/repo/{}'.format(
-            os.path.basename(
-                filename)), passio_popen=True)
-        p.stdin.write(open(filename, 'rb').read())
-        p.stdin.close()
-        p.wait()
-        retcode = self.updatevm.run('cd /tmp/repo; createrepo .', wait=True)
-        if retcode == 127:
-            self.skipTest("createrepo not installed in template {}".format(
-                self.template))
-        elif retcode != 0:
-            self.skipTest("createrepo failed with code {}, cannot perform the "
-                      "test".format(retcode))
+        self.loop.run_until_complete(self.updatevm.run_for_stdio(
+            'mkdir -p /tmp/repo; cat > /tmp/repo/{}'.format(
+                os.path.basename(filename)),
+            input=open(filename, 'rb').read()))
+        try:
+            self.loop.run_until_complete(
+                self.updatevm.run_for_stdio('cd /tmp/repo; createrepo .'))
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 127:
+                self.skipTest('createrepo not installed in template {}'.format(
+                    self.template))
+            else:
+                self.skipTest('createrepo failed with code {}, '
+                    'cannot perform the test'.format(retcode))
         self.start_repo()
 
     def start_repo(self):
-        if not self.repo_running:
-            self.updatevm.run("cd /tmp/repo &&"
-                              "python -m SimpleHTTPServer 8080")
-            self.repo_running = True
+        if self.repo_running:
+            return
+        self.loop.run_until_complete(self.updatevm.run(
+            'cd /tmp/repo && python -m SimpleHTTPServer 8080'))
+        self.repo_running = True
 
     def test_000_update(self):
         """Dom0 update tests

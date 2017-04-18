@@ -42,6 +42,7 @@ import tempfile
 import time
 import traceback
 import unittest
+import warnings
 from distutils import spawn
 
 import lxml.etree
@@ -279,6 +280,8 @@ class QubesTestCase(unittest.TestCase):
         self.addTypeEqualityFunc(qubes.devices.DeviceManager,
             self.assertDevicesEqual)
 
+        self.loop = None
+
 
     def __str__(self):
         return '{}/{}/{}'.format(
@@ -287,8 +290,19 @@ class QubesTestCase(unittest.TestCase):
             self._testMethodName)
 
 
+    def setUp():
+        super().setUp()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
     def tearDown(self):
         super(QubesTestCase, self).tearDown()
+
+        # The loop, when closing, throws a warning if there is
+        # some unfinished bussiness. Let's catch that.
+        with warnings.catch_warnings():
+            warnings.simplefilter('error')
+            self.loop.close()
 
         # TODO: find better way in py3
         try:
