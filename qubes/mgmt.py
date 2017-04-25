@@ -31,7 +31,7 @@ import pkg_resources
 import qubes.vm
 import qubes.vm.qubesvm
 import qubes.storage
-
+import qubes.utils
 
 class ProtocolError(AssertionError):
     '''Raised when something is wrong with data received'''
@@ -180,6 +180,23 @@ class QubesMgmt(AbstractQubesMgmt):
     .. seealso::
         https://www.qubes-os.org/doc/mgmt1/
     '''
+
+    def __init__(self, app, src, method, dest, arg, send_event=None):
+        # some methods are constructed dynamically
+        # VM creation - based on available VM classes
+        for endpoint in \
+                pkg_resources.iter_entry_points(qubes.vm.VM_ENTRY_POINT):
+            vmclass = endpoint.name
+            create_func = api('mgmt.vm.Create.' + vmclass)(
+                functools.partial(self.vm_create, vmclass,
+                    allow_pool=False))
+            setattr(self, 'vm_create_' + vmclass, create_func)
+            create_func = api('mgmt.vm.CreateInPool.' + vmclass)(
+                functools.partial(self.vm_create, vmclass,
+                    allow_pool=True))
+            setattr(self, 'vm_create_in_pool' + vmclass, create_func)
+
+        super().__init__(app, src, method, dest, arg, send_event)
 
     @api('mgmt.vmclass.List', no_payload=True)
     @asyncio.coroutine
@@ -661,4 +678,120 @@ class QubesMgmt(AbstractQubesMgmt):
 
         self.fire_event_for_permission(value=value)
         self.dest.features[self.arg] = value
+        self.app.save()
+
+    @asyncio.coroutine
+    def vm_create(self, vm_type, allow_pool=False, untrusted_payload=None):
+        assert self.dest.name == 'dom0'
+        # this method intentionally doesn't have @api decorator - actual api
+        # methods are constructed dynamically in __init__
+
+        kwargs = {}
+        pool = None
+        pools = {}
+
+        # this will raise exception if none is found
+        vm_class = qubes.utils.get_entry_point_one(qubes.vm.VM_ENTRY_POINT,
+            vm_type)
+
+        # if argument is given, it needs to be a valid template, and only
+        # when given VM class do need a template
+        if hasattr(vm_class, 'template'):
+            assert self.arg in self.app.domains
+            kwargs['template'] = self.app.domains[self.arg]
+        else:
+            assert not self.arg
+
+        for untrusted_param in untrusted_payload.decode('ascii',
+                errors='strict').split(' '):
+            untrusted_key, untrusted_value = untrusted_param.split('=', 1)
+            if untrusted_key in kwargs:
+                raise ProtocolError('duplicated parameters')
+
+            if untrusted_key == 'name':
+                qubes.vm.validate_name(None, None, untrusted_value)
+                kwargs['name'] = untrusted_value
+
+            elif untrusted_key == 'label':
+                # don't confuse label name with label index
+                assert not untrusted_value.isdigit()
+                allowed_chars = string.ascii_letters + string.digits + '-_.'
+                assert all(c in allowed_chars for c in untrusted_value)
+                try:
+                    kwargs['label'] = self.app.get_label(untrusted_value)
+                except KeyError:
+                    raise qubes.exc.QubesValueError
+
+            elif untrusted_key == 'pool' and allow_pool:
+                if pool is not None:
+                    raise ProtocolError('duplicated pool parameter')
+                pool = self.app.get_pool(untrusted_value)
+            elif untrusted_key.startswith('pool:') and allow_pool:
+                untrusted_volume = untrusted_key.split(':', 1)[1]
+                # kind of ugly, but actual list of volumes is available only
+                # after creating a VM
+                assert untrusted_volume in ['root', 'private', 'volatile',
+                    'kernel']
+                volume = untrusted_volume
+                if volume in pools:
+                    raise ProtocolError(
+                        'duplicated pool:{} parameter'.format(volume))
+                pools[volume] = self.app.get_pool(untrusted_value)
+
+            else:
+                raise ProtocolError('Invalid param name')
+        del untrusted_payload
+
+        if 'name' not in kwargs or 'label' not in kwargs:
+            raise ProtocolError('Missing name or label')
+
+        if pool and pools:
+            raise ProtocolError(
+                'Only one of \'pool=\' and \'pool:volume=\' can be used')
+
+        if kwargs['name'] in self.app.domains:
+            raise qubes.exc.QubesValueError(
+                'VM {} already exists'.format(kwargs['name']))
+
+        self.fire_event_for_permission(pool=pool, pools=pools, **kwargs)
+
+        vm = self.app.add_new_vm(vm_class, **kwargs)
+
+        try:
+            yield from vm.create_on_disk(pool=pool, pools=pools)
+        except:
+            del self.app.domains[vm]
+            raise
+        self.app.save()
+
+    @api('mgmt.vm.Clone')
+    @asyncio.coroutine
+    def vm_clone(self, untrusted_payload):
+        assert not self.arg
+
+        assert untrusted_payload.startswith(b'name=')
+        untrusted_name = untrusted_payload[5:].decode('ascii')
+        qubes.vm.validate_name(None, None, untrusted_name)
+        new_name = untrusted_name
+
+        del untrusted_payload
+
+        if new_name in self.app.domains:
+            raise qubes.exc.QubesValueError('Already exists')
+
+        self.fire_event_for_permission(new_name=new_name)
+
+        src_vm = self.dest
+
+        dst_vm = self.app.add_new_vm(src_vm.__class__, name=new_name)
+        try:
+            dst_vm.clone_properties(src_vm)
+            # TODO: tags
+            # TODO: features
+            # TODO: firewall
+            # TODO: persistent devices
+            yield from dst_vm.clone_disk_files(src_vm)
+        except:
+            del self.app.domains[dst_vm]
+            raise
         self.app.save()
