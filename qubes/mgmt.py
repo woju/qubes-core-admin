@@ -165,11 +165,17 @@ class AbstractQubesMgmt(object):
         return self.src.fire_event_pre('mgmt-permission:{}'.format(self.method),
             dest=self.dest, arg=self.arg, **kwargs)
 
-    def fire_event_for_filter(self, iterable, **kwargs):
-        '''Fire an event on the source qube to filter for permission'''
-        for selector in self.fire_event_for_permission(**kwargs):
+    @staticmethod
+    def apply_filters(iterable, filters):
+        '''Apply filters returned by mgmt-permission:... event'''
+        for selector in filters:
             iterable = filter(selector, iterable)
         return iterable
+
+    def fire_event_for_filter(self, iterable, **kwargs):
+        '''Fire an event on the source qube to filter for permission'''
+        return self.apply_filters(iterable,
+            self.fire_event_for_permission(**kwargs))
 
 
 class QubesMgmt(AbstractQubesMgmt):
@@ -588,9 +594,9 @@ class QubesMgmt(AbstractQubesMgmt):
                 return
             if event.startswith('mgmt-permission:'):
                 return
-            for selector in event_filters:
-                if not selector((subject, event, kwargs)):
-                    return
+            if not list(self.apply_filters([(subject, event, kwargs)],
+                    event_filters)):
+                return
             self.send_event(subject, event, **kwargs)
 
         if self.dest.name == 'dom0':
