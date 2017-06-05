@@ -27,6 +27,8 @@ import qubes.api
 import qubes.api.admin
 import qubes.vm.dispvm
 
+QUBESD_INTERNAL_SOCK = '/var/run/qubesd.internal.sock'
+
 
 class QubesInternalAPI(qubes.api.AbstractQubesAPI):
     ''' Communication interface for dom0 components,
