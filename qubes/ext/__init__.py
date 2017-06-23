@@ -74,6 +74,8 @@ def handler(*events, **kwargs):
     :param type vm: VM to hook (leave as None to hook all VMs)
     :param bool system: when :py:obj:`True`, hook is system-wide (not attached \
         to any VM)
+    :param bool is_async: when :py:obj:`True`, decorated method is expected
+        to be a coroutine - valid only for some events
     '''
 
     def decorator(func):
@@ -85,6 +87,9 @@ def handler(*events, **kwargs):
             func.ha_vm = kwargs['vm']
         else:
             func.ha_vm = qubes.vm.BaseVM
+
+        if kwargs.get('is_async', False):
+            func.ha_async = True
 
         return func
 
