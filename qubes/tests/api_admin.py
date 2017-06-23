@@ -73,7 +73,6 @@ class AdminAPITestCase(qubes.tests.QubesTestCase):
 
         self.emitter = qubes.tests.TestEmitter()
         self.app.domains[0].fire_event = self.emitter.fire_event
-        self.app.domains[0].fire_event_pre = self.emitter.fire_event_pre
 
     def tearDown(self):
         self.base_dir_patch2.stop()

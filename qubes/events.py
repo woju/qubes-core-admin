@@ -161,10 +161,11 @@ class Emitter(object, metaclass=EmitterMeta):
                     effects.extend(effect)
         return effects
 
-    def fire_event(self, event, **kwargs):
+    def fire_event(self, event, pre_event=False, **kwargs):
         '''Call all handlers for an event.
 
         Handlers are called for class and all parent classes, in **reversed**
+        or **true** (depending on *pre_event* parameter)
         method resolution order. For each class first are called bound handlers
         (specified in class definition), then handlers from extensions. Aside
         from above, remaining order is undefined.
@@ -173,34 +174,15 @@ class Emitter(object, metaclass=EmitterMeta):
             :py:meth:`fire_event_pre`
 
         :param str event: event identifier
+        :param pre_event: is this -pre- event? reverse handlers calling order
         :returns: list of effects
 
         All *kwargs* are passed verbatim. They are different for different
         events.
         '''
 
-        return self._fire_event_in_order(
-            itertools.chain(reversed(self.__class__.__mro__), (self,)),
-            event, kwargs)
-
-
-    def fire_event_pre(self, event, **kwargs):
-        '''Call all handlers for an event.
-
-        Handlers are called for class and all parent classes, in **true**
-        method resolution order. This is intended for ``-pre-`` events, where
-        order of invocation should be reversed.
-
-        .. seealso::
-            :py:meth:`fire_event`
-
-        :param str event: event identifier
-        :returns: list of effects
-
-        All *kwargs* are passed verbatim. They are different for different
-        events.
-        '''
-
-        return self._fire_event_in_order(
-            itertools.chain((self,), self.__class__.__mro__),
-            event, kwargs)
+        if pre_event:
+            order = itertools.chain((self,), self.__class__.__mro__)
+        else:
+            order = itertools.chain(reversed(self.__class__.__mro__), (self,))
+        return self._fire_event_in_order(order, event, kwargs)
