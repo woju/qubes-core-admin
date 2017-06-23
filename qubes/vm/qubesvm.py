@@ -845,7 +845,8 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
 
             self.log.info('Starting {}'.format(self.name))
 
-            self.fire_event_pre('domain-pre-start',
+            self.fire_event('domain-pre-start',
+                pre_event=True,
                 start_guid=start_guid, mem_required=mem_required)
 
             yield from self.storage.verify()
@@ -933,7 +934,7 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
         if self.is_halted():
             raise qubes.exc.QubesVMNotStartedError(self)
 
-        self.fire_event_pre('domain-pre-shutdown', force=force)
+        self.fire_event('domain-pre-shutdown', pre_event=True, force=force)
 
         self.libvirt_domain.shutdown()
 
@@ -1069,7 +1070,7 @@ class QubesVM(qubes.vm.mix.net.NetVMMixin, qubes.vm.BaseVM):
             raise qubes.exc.QubesVMError(
                 self, 'Domain {!r}: qrexec not connected'.format(self.name))
 
-        self.fire_event_pre('domain-cmd-pre-run', start_guid=gui)
+        self.fire_event('domain-cmd-pre-run', pre_event=True, start_guid=gui)
 
         return (yield from asyncio.create_subprocess_exec(
             qubes.config.system_path['qrexec_client_path'],
