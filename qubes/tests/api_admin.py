@@ -1452,6 +1452,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1468,6 +1469,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1483,6 +1485,7 @@ class TC_00_VMs(AdminAPITestCase):
     def test_482_vm_device_attach_not_running(self):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with self.assertRaises(qubes.exc.QubesVMNotRunningError):
             self.call_mgmt_func(b'admin.vm.device.testclass.Attach',
@@ -1495,6 +1498,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1512,6 +1516,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         value = self.call_mgmt_func(b'admin.vm.device.testclass.Attach',
             b'test-vm1', b'test-vm1+1234', b'persistent=yes')
@@ -1527,6 +1532,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1545,6 +1551,7 @@ class TC_00_VMs(AdminAPITestCase):
             self.device_list_attached_testclass)
         mock_detach = unittest.mock.Mock()
         mock_detach.return_value = None
+        del mock_detach._is_coroutine
         self.vm.add_handler('device-detach:testclass', mock_detach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1558,6 +1565,7 @@ class TC_00_VMs(AdminAPITestCase):
     def test_491_vm_device_detach_not_attached(self):
         mock_detach = unittest.mock.Mock()
         mock_detach.return_value = None
+        del mock_detach._is_coroutine
         self.vm.add_handler('device-detach:testclass', mock_detach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
