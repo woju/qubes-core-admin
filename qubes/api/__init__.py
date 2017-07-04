@@ -181,8 +181,8 @@ class AbstractQubesAPI(object):
 
     def fire_event_for_permission(self, **kwargs):
         '''Fire an event on the source qube to check for permission'''
-        return self.src.fire_event_pre('mgmt-permission:' + self.method,
-            dest=self.dest, arg=self.arg, **kwargs)
+        return self.src.fire_event('mgmt-permission:' + self.method,
+            pre_event=True, dest=self.dest, arg=self.arg, **kwargs)
 
     def fire_event_for_filter(self, iterable, **kwargs):
         '''Fire an event on the source qube to filter for permission'''
@@ -343,12 +343,12 @@ def create_servers(*args, force=False, loop=None, **kwargs):
     '''Create multiple Qubes API servers
 
     :param qubes.Qubes app: the app that is a backend of the servers
-    :param bool force: if :py:obj:`True`, unconditionaly remove existing \
+    :param bool force: if :py:obj:`True`, unconditionally remove existing \
         sockets; if :py:obj:`False`, raise an error if there is some process \
         listening to such socket
     :param asyncio.Loop loop: loop
 
-    *args* are supposed to be classess inheriting from
+    *args* are supposed to be classes inheriting from
     :py:class:`AbstractQubesAPI`
 
     *kwargs* (like *app* or *debug* for example) are passed to

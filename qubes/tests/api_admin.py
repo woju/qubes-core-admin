@@ -76,7 +76,6 @@ class AdminAPITestCase(qubes.tests.QubesTestCase):
 
         self.emitter = qubes.tests.TestEmitter()
         self.app.domains[0].fire_event = self.emitter.fire_event
-        self.app.domains[0].fire_event_pre = self.emitter.fire_event_pre
 
     def tearDown(self):
         self.base_dir_patch2.stop()
@@ -1320,7 +1319,8 @@ class TC_00_VMs(AdminAPITestCase):
     def test_470_vm_device_list_persistent(self):
         assignment = qubes.devices.DeviceAssignment(self.vm, '1234',
             persistent=True)
-        self.vm.devices['testclass'].attach(assignment)
+        self.loop.run_until_complete(
+            self.vm.devices['testclass'].attach(assignment))
         value = self.call_mgmt_func(b'admin.vm.device.testclass.List',
             b'test-vm1')
         self.assertEqual(value,
@@ -1330,10 +1330,12 @@ class TC_00_VMs(AdminAPITestCase):
     def test_471_vm_device_list_persistent_options(self):
         assignment = qubes.devices.DeviceAssignment(self.vm, '1234',
             persistent=True, options={'opt1': 'value'})
-        self.vm.devices['testclass'].attach(assignment)
+        self.loop.run_until_complete(
+            self.vm.devices['testclass'].attach(assignment))
         assignment = qubes.devices.DeviceAssignment(self.vm, '4321',
             persistent=True)
-        self.vm.devices['testclass'].attach(assignment)
+        self.loop.run_until_complete(
+            self.vm.devices['testclass'].attach(assignment))
         value = self.call_mgmt_func(b'admin.vm.device.testclass.List',
             b'test-vm1')
         self.assertEqual(value,
@@ -1361,7 +1363,8 @@ class TC_00_VMs(AdminAPITestCase):
             self.device_list_attached_testclass)
         assignment = qubes.devices.DeviceAssignment(self.vm, '4321',
             persistent=True)
-        self.vm.devices['testclass'].attach(assignment)
+        self.loop.run_until_complete(
+            self.vm.devices['testclass'].attach(assignment))
         value = self.call_mgmt_func(b'admin.vm.device.testclass.List',
             b'test-vm1')
         self.assertEqual(value,
@@ -1374,7 +1377,8 @@ class TC_00_VMs(AdminAPITestCase):
             self.device_list_attached_testclass)
         assignment = qubes.devices.DeviceAssignment(self.vm, '4321',
             persistent=True)
-        self.vm.devices['testclass'].attach(assignment)
+        self.loop.run_until_complete(
+            self.vm.devices['testclass'].attach(assignment))
         value = self.call_mgmt_func(b'admin.vm.device.testclass.List',
             b'test-vm1', b'test-vm1+1234')
         self.assertEqual(value,
@@ -1385,6 +1389,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1401,6 +1406,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1416,6 +1422,7 @@ class TC_00_VMs(AdminAPITestCase):
     def test_482_vm_device_attach_not_running(self):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with self.assertRaises(qubes.exc.QubesVMNotRunningError):
             self.call_mgmt_func(b'admin.vm.device.testclass.Attach',
@@ -1428,6 +1435,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1445,6 +1453,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         value = self.call_mgmt_func(b'admin.vm.device.testclass.Attach',
             b'test-vm1', b'test-vm1+1234', b'persistent=yes')
@@ -1460,6 +1469,7 @@ class TC_00_VMs(AdminAPITestCase):
         self.vm.add_handler('device-list:testclass', self.device_list_testclass)
         mock_attach = unittest.mock.Mock()
         mock_attach.return_value = None
+        del mock_attach._is_coroutine
         self.vm.add_handler('device-attach:testclass', mock_attach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1478,6 +1488,7 @@ class TC_00_VMs(AdminAPITestCase):
             self.device_list_attached_testclass)
         mock_detach = unittest.mock.Mock()
         mock_detach.return_value = None
+        del mock_detach._is_coroutine
         self.vm.add_handler('device-detach:testclass', mock_detach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
@@ -1491,6 +1502,7 @@ class TC_00_VMs(AdminAPITestCase):
     def test_491_vm_device_detach_not_attached(self):
         mock_detach = unittest.mock.Mock()
         mock_detach.return_value = None
+        del mock_detach._is_coroutine
         self.vm.add_handler('device-detach:testclass', mock_detach)
         with unittest.mock.patch.object(qubes.vm.qubesvm.QubesVM,
                 'is_halted', lambda _: False):
