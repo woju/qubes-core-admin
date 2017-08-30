@@ -25,6 +25,7 @@ import curses
 import itertools
 import logging
 import logging.handlers
+import objgraph
 import os
 import socket
 import subprocess
