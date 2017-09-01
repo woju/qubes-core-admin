@@ -139,13 +139,12 @@ class VirConnectWrapper(object):
 class VMMConnection(object):
     '''Connection to Virtual Machine Manager (libvirt)'''
 
-    def __init__(self, app, offline_mode=None):
+    def __init__(self, offline_mode=None):
         '''
 
         :param offline_mode: enable/disable offline mode; default is to
         enable when running in chroot as root, otherwise disable
         '''
-        self.app = app
         if offline_mode is None:
             offline_mode = bool(os.getuid() == 0 and
                 os.stat('/') != os.stat('/proc/1/root/.'))
@@ -725,7 +724,7 @@ class Qubes(qubes.PropertyHolder):
         self._extensions = qubes.ext.get_extensions()
 
         #: collection of all VMs managed by this Qubes instance
-        self.domains = VMCollection(self)
+        self.domains = VMCollection()
 
         #: collection of all available labels for VMs
         self.labels = {}
