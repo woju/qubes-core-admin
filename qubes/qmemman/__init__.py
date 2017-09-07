@@ -33,6 +33,8 @@ import xen.lowlevel.xs
 import qubes.qmemman.algo
 
 
+QUBESD_INTERNAL_SOCK = '/var/run/qubesd.internal.sock'
+
 no_progress_msg="VM refused to give back requested memory"
 slow_memset_react_msg="VM didn't give back all requested memory"
 
@@ -140,16 +142,14 @@ class SystemState(object):
                     self.domdict[i].memory_actual <= self.domdict[i].last_target + self.XEN_FREE_MEM_LEFT/4:
                 dom_name = self.xs.read('', '/local/domain/%s/name' % str(i))
                 if dom_name is not None:
-                    # TODO: report it somewhere, qubesd or elsewhere
-                    pass
+                    report_vm(dom_name, 'no-error', slow_memset_react_msg)
                 self.domdict[i].slow_memset_react = False
 
             if self.domdict[i].no_progress and \
                     self.domdict[i].memory_actual <= self.domdict[i].last_target + self.XEN_FREE_MEM_LEFT/4:
                 dom_name = self.xs.read('', '/local/domain/%s/name' % str(i))
                 if dom_name is not None:
-                    # TODO: report it somewhere, qubesd or elsewhere
-                    pass
+                    report_vm(dom_name, 'no-error', no_progress_msg)
                 self.domdict[i].no_progress = False
 
 #the below works (and is fast), but then 'xm list' shows unchanged memory value
@@ -334,8 +334,7 @@ class SystemState(object):
                                 self.domdict[dom2].no_progress = True
                                 dom_name = self.xs.read('', '/local/domain/%s/name' % str(dom2))
                                 if dom_name is not None:
-                                    # TODO: report it somewhere, qubesd or elsewhere
-                                    pass
+                                    report_vm(dom_name, 'error', no_progress_msg)
                             else:
                                 self.log.warning('dom {!r} still hold more'
                                     ' memory than have assigned ({} > {})'
@@ -345,8 +344,7 @@ class SystemState(object):
                                 self.domdict[dom2].slow_memset_react = True
                                 dom_name = self.xs.read('', '/local/domain/%s/name' % str(dom2))
                                 if dom_name is not None:
-                                    # TODO: report it somewhere, qubesd or elsewhere
-                                    pass
+                                    report_vm(dom_name, 'error', slow_memset_react_msg)
                     self.mem_set(dom, self.get_free_xen_memory() + self.domdict[dom].memory_actual - self.XEN_FREE_MEM_LEFT)
                     return
 
@@ -356,3 +354,25 @@ class SystemState(object):
 #            print 'domain ', i, ' meminfo=', self.domdict[i].mem_used, 'actual mem', self.domdict[i].memory_actual
 #            print 'domain ', i, 'actual mem', self.domdict[i].memory_actual
 #        print 'xen free mem', self.get_free_xen_memory()
+
+
+def report_vm(vmname, status, msg, sockaddr=QUBESD_INTERNAL_SOCK):
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.connect(sockaddr)
+    sock.sendall(b'\0'.join(map(str.encode,
+        ('dom0', 'internal.qmemman.vm.Status', vmname, status, msg))))
+    sock.shutdown(socket.SHUT_WR)
+    ret = sock.makefile('rb').read()
+    sock.close()
+    if ret.startswith(b'0\0'):
+        return ret[2:].decode()
+    if ret.startswith(b'2\0'):
+        _, exc_name, exc_tb, exc_fmt, *args = ret.split(b'\0', 4)
+        try:
+            exc_type = getattr(__builtins__, exc_name)
+            assert issubclass(exc_type, BaseException)
+        except (AttributeError, AssertionError):
+            exc_type = type(exc_name, (Exception,), {})
+        raise exc_type(
+            exc_fmt.decode('ascii') % map(str.decode, args))
+    assert False, 'invalid qubesd response: {!r}'.format()

@@ -150,3 +150,12 @@ class QubesInternalAPI(qubes.api.AbstractQubesAPI):
         # FIXME: some timeout?
         if processes:
             yield from asyncio.wait([p.wait() for p in processes])
+
+    @qubes.api.method('internal.qmemman.vm.Status')
+    @asyncio.coroutine
+    def qmemman_vm_status(self, untrusted_payload):
+        '''
+        Method called by :program:`qmemmand` when some VM is deemed misbehaving.
+        '''
+
+        self.dest.fire_event('qmemman-status', status=self.arg, msg=msg)
